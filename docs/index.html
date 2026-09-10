@@ -1,0 +1,3496 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="QNxMpqia9ZZYCBnp0H4EY0">
+<head data-page-node-id="PQTbd6k4a8ZETpVp0g0jez">
+<meta charset="UTF-8" data-page-node-id="A82il4563Wt9sIQyuRG2y0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" data-page-node-id="mCNk6nfBTnDT6OgJVlEInS">
+<meta name="format-detection" content="telephone=no" data-page-node-id="vdS2PVUZOZcjwFRmAYM4mO">
+<meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="HMy42aIEYGQcMOIoi2GTJm">
+<meta name="mobile-web-app-capable" content="yes" data-page-node-id="BjmvdzrG9roGIALy1aV0TR">
+<meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="bU6LZClPGEtKXIq46lKulM">
+<meta name="apple-mobile-web-app-title" content="清单生成器" data-page-node-id="bUN5NJdZK4hzW8NGp0ztdm">
+<meta name="theme-color" content="#F2F3F5" data-page-node-id="MSz1maz85J7ac3Ab2l9Kqt">
+<meta name="color-scheme" content="light" data-page-node-id="bXvwisH6RXlClnDcTG5OIX">
+<title>清单生成器</title>
+<style>
+/* ============================================================
+   清单生成器 · iOS 移动端样式
+   配色 / 字号 / 间距 全部对齐 Ardot 设计稿
+   ============================================================ */
+
+:root{
+  /* 主色 */
+  --accent:#2E9E7E;
+  --accent-deep:#2E7D66;
+  --accent-soft:#F1F7F4;
+  --accent-soft-2:#E8F1ED;
+  --accent-border:#DCEAE4;
+
+  /* 文字 */
+  --t1:#16181C;
+  --t2:#2A2E34;
+  --t3:#4A5058;
+  --t4:#8A9099;
+  --t5:#AEB4BD;
+
+  /* 背景与描边 */
+  --bg:#F2F3F5;
+  --card:#FFFFFF;
+  --line:#EDEFF2;
+  --line-2:#E6E9ED;
+  --track:#ECEEF1;
+  --dot-off:#C9CFD8;
+  --fill-grey:#F7F8FA;
+
+  /* 安全区 */
+  --sat:env(safe-area-inset-top, 0px);
+  --sab:env(safe-area-inset-bottom, 0px);
+  --sal:env(safe-area-inset-left, 0px);
+  --sar:env(safe-area-inset-right, 0px);
+
+  /* 尺寸 */
+  --tabbar-h:62px;
+  --nav-h:44px;
+}
+
+*,*::before,*::after{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;padding:0;
+  width:100%;height:100%;
+  overflow:hidden;
+  position:fixed;
+  overscroll-behavior:none;
+  background:var(--bg);
+}
+
+/* ---------- 禁止文字选中 / 长按系统菜单 ---------- */
+html,body,div,span,a,p,h1,h2,h3,h4,label,li,ul,ol,button{
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+input,textarea{
+  -webkit-user-select:text;
+  user-select:text;
+  -webkit-touch-callout:default;
+  font-family:inherit;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","SF Pro Text","PingFang SC","Helvetica Neue","Noto Sans SC",sans-serif;
+  color:var(--t2);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  touch-action:manipulation;
+}
+
+/* ---------- App 容器 ---------- */
+#app{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  overflow:hidden;
+}
+
+.stacks{position:absolute;inset:0;}
+.stack{position:absolute;inset:0;display:none;}
+.stack.active{display:block;}
+/* 非栈顶页面不接收指针事件，避免被覆盖的底层 CTA 误拦截点击 */
+.stack > .screen:not(:last-child){ pointer-events:none; }
+
+/* ---------- 页面 ---------- */
+.screen{
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  display:flex;
+  flex-direction:column;
+  background:var(--bg);
+  transform:translate3d(0,0,0);
+  will-change:transform;
+  transition:transform .28s cubic-bezier(.32,.72,0,1);
+}
+.screen.push-in{transform:translate3d(100%,0,0);}
+.screen.pop-out{transform:translate3d(100%,0,0);}
+.screen.dragging{transition:none;}
+.screen.dim{filter:brightness(.94);}
+
+/* 顶部安全区占位（背景色延伸进状态栏区域，不画假状态栏） */
+.safe-top{
+  flex:0 0 auto;
+  height:var(--sat);
+  background:var(--bg);
+}
+.screen-head-white + .screen-body .safe-top{background:#fff;}
+
+/* ---------- 滚动容器 ---------- */
+.screen-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  padding:8px 20px calc(28px + var(--tabbar-h) + var(--sab)) 20px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+/* 关键：防止子项（尤其是 .card overflow:hidden）在 flex 列中被压缩裁剪，
+   导致内容无法撑开、整页不滚动。子项保持自然高度，超长页面才能正常滚动。 */
+.screen-body > *{ flex-shrink:0; }
+.screen-body.no-tab{
+  padding-bottom:calc(16px + var(--sab));
+}
+.screen-body::-webkit-scrollbar{width:0;height:0;display:none;}
+
+/* ============================================================
+   导航条
+   ============================================================ */
+.navbar{
+  flex:0 0 auto;
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  height:var(--nav-h);
+  padding:0 8px;
+  background:var(--bg);
+}
+.navbar .nav-side{
+  min-width:64px;
+  display:flex;
+  align-items:center;
+  gap:2px;
+}
+.navbar .nav-side.right{justify-content:flex-end;}
+.navbar .nav-title{
+  flex:1 1 auto;
+  text-align:center;
+  font-size:17px;
+  font-weight:600;
+  color:var(--t1);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.nav-btn{
+  display:flex;align-items:center;justify-content:center;
+  gap:1px;
+  min-width:44px;height:44px;
+  padding:0 6px;
+  border:0;background:transparent;
+  color:var(--accent);
+  font-size:16px;font-weight:500;
+  border-radius:12px;
+  transition:opacity .12s;
+}
+.nav-btn .chev{width:12px;height:20px;display:block;}
+.nav-btn.ghost{color:var(--t4);}
+.nav-btn.icon{min-width:44px;padding:0;}
+
+/* 大标题页头 */
+.page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.page-head h1{
+  margin:0;
+  font-size:28px;
+  font-weight:700;
+  color:var(--t1);
+  letter-spacing:-.4px;
+}
+.round-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;
+  border:0;border-radius:18px;
+  background:var(--accent);
+  flex:0 0 auto;
+}
+.round-btn.grey{background:var(--fill-grey);border:1px solid var(--line-2);}
+.round-btn.lg{width:44px;height:44px;border-radius:22px;}
+
+/* ============================================================
+   Pill Tab Bar
+   ============================================================ */
+.tabbar{
+  position:absolute;
+  left:0;right:0;bottom:0;
+  z-index:60;
+  padding:12px 21px calc(8px + var(--sab)) 21px;
+  padding-left:calc(21px + var(--sal));
+  padding-right:calc(21px + var(--sar));
+  background:linear-gradient(to top, rgba(242,243,245,.98) 62%, rgba(242,243,245,0));
+  pointer-events:none;
+}
+.tab-pill{
+  pointer-events:auto;
+  display:flex;
+  gap:4px;
+  height:var(--tabbar-h);
+  padding:4px;
+  border-radius:36px;
+  background:rgba(255,255,255,.74);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 8px 22px -6px rgba(23,26,30,.12);
+}
+.tab-item{
+  flex:1 1 0;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  border:0;
+  border-radius:26px;
+  background:transparent;
+  padding:0 2px;
+  transition:background-color .18s, transform .12s;
+}
+.tab-item .tab-ico{
+  width:18px;height:18px;display:block;flex:0 0 auto;
+}
+.tab-item .tab-label{
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.2px;
+  color:var(--t5);
+  line-height:12px;
+  white-space:nowrap;
+}
+.tab-item.on{background:var(--accent);}
+.tab-item.on .tab-label{color:#fff;}
+.tab-item:not(.on) .tab-ico{color:var(--t5);}
+.tab-item.on .tab-ico{color:#fff;}
+.tab-item.pressed{transform:scale(.94);}
+
+/* ============================================================
+   通用卡片 / 列表
+   ============================================================ */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+}
+.card.pad{padding:16px;}
+.card.pad-sm{padding:14px;}
+
+.section-title{
+  margin:0;
+  font-size:14px;
+  font-weight:700;
+  color:var(--t1);
+}
+.section-row{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.section-row .more{
+  font-size:12px;font-weight:600;color:var(--accent);
+}
+
+/* 进度卡 */
+.progress-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.progress-top{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.progress-status{font-size:12px;font-weight:600;color:var(--t4);}
+.progress-count{font-size:18px;font-weight:700;color:var(--accent);}
+.progress-track{
+  height:6px;border-radius:3px;background:var(--track);overflow:hidden;
+}
+.progress-fill{
+  height:100%;border-radius:3px;background:var(--accent);
+  transition:width .3s cubic-bezier(.32,.72,0,1);
+}
+.progress-note{font-size:12px;color:var(--t4);}
+
+.meta-line{font-size:12px;color:var(--t4);}
+
+/* 筛选条 */
+.filter-row{display:flex;gap:8px;}
+.chip-seg{
+  flex:1 1 0;min-width:0;
+  height:38px;
+  border:1px solid var(--line-2);
+  border-radius:12px;
+  background:var(--card);
+  color:var(--t4);
+  font-size:12px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 4px;
+  white-space:nowrap;
+  transition:background-color .16s,color .16s,border-color .16s,transform .12s;
+}
+.chip-seg.on{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;font-weight:600;
+}
+.chip-seg.pressed{transform:scale(.96);}
+
+/* 清单行：三段式 —— 左 完成 / 中 内容 / 右 不需要 */
+.row{
+  display:flex;align-items:center;gap:8px;
+  min-height:54px;
+  width:100%;
+  padding:6px 8px;
+  border:0;background:transparent;
+  text-align:left;
+  transition:opacity .22s cubic-bezier(.32,.72,0,1);
+}
+.row .row-dot{
+  flex:0 0 auto;width:20px;height:20px;display:block;
+}
+
+/* 左：完成状态控件（细线圆 + 描边勾选，靠 .on 切换，无大色块填充） */
+.row-check{
+  flex:0 0 auto;
+  width:42px;height:42px;min-width:42px;min-height:42px;
+  display:flex;align-items:center;justify-content:center;
+  margin:0;padding:0;border:0;background:transparent;border-radius:50%;
+  transition:transform .14s cubic-bezier(.32,.72,0,1);
+  -webkit-tap-highlight-color:transparent;
+}
+.row-check.pressed{transform:scale(.86);}
+.row-check .check-svg{width:26px;height:26px;display:block;overflow:visible;}
+.row-check .ck-circle{
+  fill:none;stroke:var(--dot-off);stroke-width:1.8;
+  transition:stroke .2s ease,fill .2s ease;
+}
+.row-check .ck-mark{
+  fill:none;stroke:#fff;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:24;stroke-dashoffset:24;
+  transition:stroke-dashoffset .24s cubic-bezier(.32,.72,0,1);
+}
+.row-check.on .ck-circle{stroke:var(--accent);fill:var(--accent);}
+.row-check.on .ck-mark{stroke-dashoffset:0;}
+
+/* 中：内容区 */
+.row-main{
+  flex:1 1 auto;min-width:0;
+  display:flex;flex-direction:column;gap:3px;
+  justify-content:center;min-height:40px;
+}
+.row-main .row-label{
+  font-size:15px;font-weight:500;color:var(--t2);
+  line-height:20px;overflow-wrap:anywhere;
+}
+.row-main .row-label .row-meta{font-size:12px;color:var(--t4);font-weight:500;margin-left:3px;}
+.row-tags{display:flex;flex-wrap:wrap;gap:5px;}
+
+/* 右：「不需要」独立操作区（轻量文字按钮，不并入左按钮） */
+.row-skip{
+  flex:0 0 auto;
+  min-width:58px;min-height:38px;
+  margin:0;padding:0 10px;
+  border:0;background:transparent;border-radius:11px;
+  color:var(--t4);
+  font-size:13px;font-weight:500;
+  white-space:nowrap;
+  transition:color .16s ease,background-color .16s ease,transform .14s cubic-bezier(.32,.72,0,1);
+}
+.row-skip.pressed{transform:scale(.93);background:var(--fill-grey);}
+.row-skip.is-skip{color:var(--accent);}
+
+/* 状态态：已完成轻微淡化 + 细线划线；不需要灰化低强调，不删除不消失 */
+.row.done .row-label{color:var(--t4);text-decoration:line-through;text-decoration-color:var(--t5);text-decoration-thickness:1px;}
+.row.skip{opacity:.6;}
+.row.skip .row-label{color:var(--t4);}
+
+.row .row-meta{
+  flex:0 0 auto;font-size:12px;color:var(--t4);font-weight:500;
+}
+.row .chev{color:var(--dot-off);font-size:20px;line-height:1;flex:0 0 auto;}
+
+/* 搬家用：整行一个状态控件（保留四态装箱流程） */
+.row-hit{
+  flex:0 0 auto;
+  min-width:44px;min-height:44px;
+  display:flex;align-items:center;justify-content:center;
+  margin-right:-8px;
+  transition:transform .14s cubic-bezier(.32,.72,0,1);
+}
+.row-hit.pressed{transform:scale(.9);}
+
+.tag-chip{
+  flex:0 0 auto;
+  padding:3px 7px;border-radius:6px;
+  font-size:11px;font-weight:600;
+  color:var(--accent-deep);
+  background:var(--accent-soft);
+  white-space:nowrap;
+}
+.tag-chip.cycle{background:var(--accent-soft-2);}
+.tag-chip.grey{background:var(--fill-grey);color:var(--t4);border:1px solid var(--line-2);}
+.add-row{
+  display:flex;align-items:center;gap:8px;
+  width:100%;min-height:44px;padding:7px 12px;
+  border:0;background:transparent;color:var(--t4);
+  font-size:14px;font-weight:500;
+}
+.add-row.pressed{background:var(--fill-grey);}
+.add-row .plus{
+  width:18px;height:18px;flex:0 0 auto;color:var(--accent);
+}
+
+.rows{padding:4px;display:flex;flex-direction:column;}
+.rows > * + *{border-top:1px solid var(--line);}
+
+/* 首页进行中卡片 */
+.mini-card{
+  display:flex;flex-direction:column;gap:10px;
+  padding:14px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  width:100%;
+  text-align:left;
+  transition:transform .12s,background-color .14s;
+}
+.mini-card.pressed{transform:scale(.985);background:var(--fill-grey);}
+.mini-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.mini-name{font-size:15px;font-weight:600;color:var(--t1);}
+.mini-num{font-size:13px;font-weight:600;color:var(--accent);}
+.mini-sub{font-size:12px;color:var(--t4);}
+
+/* chips 横向滚动 */
+.chips-scroll{
+  display:flex;gap:8px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:2px 0;
+  margin:0 -20px;
+  padding-left:20px;padding-right:20px;
+  scrollbar-width:none;
+}
+.chips-scroll::-webkit-scrollbar{display:none;}
+.chip-tag{
+  flex:0 0 auto;
+  padding:7px 12px;border-radius:14px;
+  background:var(--fill-grey);
+  border:1px solid var(--line-2);
+  font-size:13px;font-weight:500;color:var(--t3);
+  transition:background-color .14s,transform .12s;
+}
+.chip-tag.pressed{transform:scale(.96);}
+.chip-tag.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.chip-tag.selectable{padding-right:6px;}
+
+/* 快速新建 4 宫格 */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.quick-item{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:12px 4px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  transition:transform .12s,background-color .14s;
+}
+.quick-item.pressed{transform:scale(.96);background:var(--fill-grey);}
+.quick-ico{
+  width:26px;height:26px;color:var(--accent);
+}
+.quick-name{font-size:12px;font-weight:500;color:var(--t3);}
+
+/* 场景选择分组 */
+.group{margin:0;font-size:14px;font-weight:700;color:var(--t1);}
+.scene-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.scene-item{
+  position:relative;
+  min-height:56px;
+  padding:10px 8px;
+  border-radius:14px;
+  border:1px solid var(--line-2);
+  background:var(--card);
+  font-size:14px;font-weight:500;color:var(--t3);
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;line-height:19px;
+  transition:background-color .16s,color .16s,border-color .16s,transform .12s;
+}
+.scene-item.pressed{transform:scale(.97);}
+.scene-item.on{
+  background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;
+}
+.scene-item.on::after{
+  content:"";position:absolute;top:6px;right:6px;
+  width:14px;height:14px;border-radius:7px;
+  background:#fff;
+}
+.scene-item.on::before{
+  content:"";position:absolute;top:9px;right:9px;z-index:1;
+  width:8px;height:5px;
+  border-left:1.8px solid var(--accent);
+  border-bottom:1.8px solid var(--accent);
+  transform:rotate(-45deg);
+}
+
+/* 条件选择块 */
+.cond-block{display:flex;flex-direction:column;gap:10px;}
+.cond-title{font-size:14px;font-weight:700;color:var(--t1);}
+.cond-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cond-grid.c2{grid-template-columns:repeat(2,1fr);}
+.cond-opt{
+  min-height:46px;padding:8px 6px;
+  border-radius:12px;
+  border:1px solid var(--line-2);
+  background:var(--card);
+  font-size:14px;font-weight:500;color:var(--t3);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  transition:background-color .16s,color .16s,border-color .16s,transform .12s;
+}
+.cond-opt.pressed{transform:scale(.97);}
+.cond-opt.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);font-weight:600;}
+
+/* Switch */
+.switch-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:52px;padding:6px 14px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+.switch-row .sw-label{font-size:15px;font-weight:500;color:var(--t2);}
+.switch-row .sw-sub{font-size:12px;color:var(--t4);}
+.switch{
+  position:relative;flex:0 0 auto;
+  width:50px;height:30px;border-radius:15px;
+  border:0;background:var(--line-2);
+  transition:background-color .22s;
+  padding:0;
+}
+.switch.on{background:var(--accent);}
+.switch .knob{
+  position:absolute;top:3px;left:3px;
+  width:24px;height:24px;border-radius:12px;background:#fff;
+  box-shadow:0 2px 4px rgba(0,0,0,.16);
+  transition:transform .22s cubic-bezier(.32,.72,0,1);
+}
+.switch.on .knob{transform:translateX(20px);}
+
+/* 底部 CTA —— 预留底部 Tab 高度，按钮始终位于 Tab 之上、不被遮挡 */
+.cta-host{
+  flex:0 0 auto;
+  position:relative;
+  z-index:55;
+  padding:10px 20px calc(var(--tabbar-h) + 28px + var(--sab)) 20px;
+  padding-left:calc(20px + var(--sal));
+  padding-right:calc(20px + var(--sar));
+  background:linear-gradient(to top,rgba(242,243,245,.98) 60%,rgba(242,243,245,0));
+}
+/* 含底部 CTA 的页面，滚动内容底部预留空间，最后一项不被遮住 */
+.screen-body.has-cta{
+  padding-bottom:calc(12px + var(--sab));
+}
+.cta{
+  width:100%;min-height:52px;
+  border:0;border-radius:16px;
+  background:var(--accent);
+  color:#fff;font-size:16px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s,opacity .16s;
+}
+.cta.pressed{transform:scale(.98);opacity:.9;}
+.cta[disabled]{background:var(--line-2);color:var(--t5);}
+.cta.ghost{background:var(--card);color:var(--t3);border:1px solid var(--line-2);}
+.cta.danger{background:#E4574C;}
+.cta-row{display:flex;gap:10px;}
+.cta-row .cta{flex:1 1 0;}
+
+/* 说明条 */
+.tip-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 12px;
+  background:var(--fill-grey);
+  border-radius:12px;
+  font-size:12px;color:var(--t4);line-height:17px;
+}
+.tip-bar .ico{flex:0 0 auto;width:16px;height:16px;}
+
+/* 物品 chip 墙 */
+.chip-wall{
+  display:flex;flex-wrap:wrap;gap:8px;
+  padding:12px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+
+/* 概览统计 */
+.stat-row{display:flex;gap:8px;}
+.stat{
+  flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.stat .n{font-size:22px;font-weight:700;color:var(--t1);}
+.stat .l{font-size:12px;color:var(--t4);}
+
+/* 导航行（我的 / 模板） */
+.nav-row{
+  display:flex;align-items:center;gap:12px;
+  width:100%;min-height:56px;
+  padding:7px 14px;
+  border:0;background:transparent;text-align:left;
+  transition:background-color .14s;
+}
+.nav-row.pressed{background:var(--fill-grey);}
+.nav-row .txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.nav-row .n1{font-size:15px;font-weight:500;color:var(--t2);}
+.nav-row .n2{font-size:12px;color:var(--t4);}
+.nav-row .act{font-size:13px;font-weight:600;color:var(--accent);flex:0 0 auto;}
+.nav-row .chev{font-size:20px;color:var(--dot-off);flex:0 0 auto;line-height:1;}
+
+/* 空状态 */
+.empty{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:44px 24px;text-align:center;
+}
+.empty .ico{width:44px;height:44px;color:var(--dot-off);}
+.empty .t1x{font-size:15px;font-weight:600;color:var(--t3);}
+.empty .t2x{font-size:13px;color:var(--t4);line-height:19px;}
+
+/* ============================================================
+   底部 Sheet / 弹窗
+   ============================================================ */
+.sheet-mask{
+  position:absolute;inset:0;z-index:80;
+  background:rgba(20,22,26,.34);
+  opacity:0;pointer-events:none;
+  transition:opacity .26s;
+}
+.sheet-mask.on{opacity:1;pointer-events:auto;}
+.sheet-host{
+  position:absolute;left:0;right:0;bottom:0;z-index:90;
+  pointer-events:none;
+}
+.sheet{
+  pointer-events:auto;
+  background:var(--card);
+  border-radius:20px 20px 0 0;
+  padding:8px 16px calc(16px + var(--sab)) 16px;
+  padding-left:calc(16px + var(--sal));
+  padding-right:calc(16px + var(--sar));
+  transform:translate3d(0,100%,0);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);
+  max-height:82%;
+  display:flex;flex-direction:column;
+  box-shadow:0 -8px 30px rgba(20,22,26,.14);
+}
+.sheet.on{transform:translate3d(0,0,0);}
+.sheet-grab{
+  width:36px;height:5px;border-radius:3px;background:var(--line-2);
+  margin:6px auto 10px;flex:0 0 auto;
+}
+.sheet-title{
+  margin:2px 0 10px;font-size:17px;font-weight:600;color:var(--t1);text-align:center;
+}
+.sheet-body{
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  display:flex;flex-direction:column;gap:10px;
+}
+.sheet-actions{display:flex;flex-direction:column;gap:10px;}
+
+/* 表单 */
+.field{
+  display:flex;align-items:center;gap:10px;
+  min-height:50px;padding:6px 14px;
+  background:var(--fill-grey);
+  border:1px solid var(--line-2);
+  border-radius:12px;
+}
+.field:focus-within{border-color:var(--accent);background:#fff;}
+.field input{
+  flex:1 1 auto;min-width:0;
+  border:0;background:transparent;outline:none;
+  font-size:16px;color:var(--t2);
+  height:32px;
+}
+.field input::placeholder{color:var(--t5);}
+.field .clear{
+  flex:0 0 auto;width:34px;height:34px;border:0;background:transparent;
+  color:var(--t5);font-size:18px;display:none;align-items:center;justify-content:center;
+}
+.field.has-value .clear{display:flex;}
+
+/* Action Sheet 行 */
+.act-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  min-height:52px;
+  border:0;border-radius:14px;
+  background:var(--fill-grey);
+  font-size:16px;font-weight:500;color:var(--t2);
+  width:100%;
+  transition:transform .12s,background-color .14s;
+}
+.act-row.pressed{transform:scale(.985);background:var(--line);}
+.act-row.accent{background:var(--accent);color:#fff;font-weight:600;}
+.act-row.danger{color:#D93A30;font-weight:500;}
+
+/* 箱号选择网格 */
+.box-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.box-opt{
+  min-height:48px;padding:6px 4px;border-radius:12px;
+  border:1px solid var(--line-2);background:var(--card);
+  font-size:14px;font-weight:500;color:var(--t3);
+  display:flex;align-items:center;justify-content:center;
+  transition:background-color .16s,color .16s,border-color .16s,transform .12s;
+}
+.box-opt.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);font-weight:600;}
+
+/* 状态选择（搬家四态） */
+.state-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.state-opt{
+  display:flex;align-items:center;gap:8px;
+  min-height:50px;padding:8px 12px;border-radius:12px;
+  border:1px solid var(--line-2);background:var(--card);
+  font-size:14px;font-weight:500;color:var(--t3);
+  transition:background-color .16s,border-color .16s,transform .12s;
+}
+.state-opt.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep);font-weight:600;}
+.state-opt .d{width:20px;height:20px;flex:0 0 auto;}
+
+/* 分类选择 */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toast{
+  position:absolute;
+  left:50%;
+  bottom:calc(var(--tabbar-h) + var(--sab) + 34px);
+  transform:translate(-50%,10px);
+  z-index:120;
+  max-width:76%;
+  padding:10px 16px;
+  border-radius:12px;
+  background:rgba(28,31,36,.92);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  color:#fff;font-size:14px;font-weight:500;
+  text-align:center;line-height:19px;
+  opacity:0;pointer-events:none;
+  transition:opacity .22s,transform .22s;
+}
+.toast.on{opacity:1;transform:translate(-50%,0);}
+
+/* 长按排序态 */
+.row.sorting{
+  background:var(--accent-soft);
+  box-shadow:0 6px 18px -4px rgba(20,22,26,.22);
+  transform:scale(1.01);
+  opacity:.96;
+}
+.row.drag-ghost{opacity:.4;}
+
+/* 边缘返回手势区 */
+.edge-back{
+  position:absolute;
+  top:0;bottom:0;left:0;width:26px;
+  z-index:50;
+}
+
+/* 无障碍隐藏 */
+.sr-only{
+  position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;
+}
+
+/* 小屏适配 */
+@media (max-height:700px){
+  :root{--tabbar-h:58px;}
+  .screen-body{padding-top:4px;gap:13px;}
+}
+@media (max-width:340px){
+  .screen-body{padding-left:16px;padding-right:16px;}
+  .scene-grid{gap:8px;}
+  .scene-item{font-size:13px;}
+}
+
+</style>
+</head>
+<body data-page-node-id="HiotpPfSpaSqg1DoHxPLZI">
+<div id="app" data-page-node-id="zcej3dFMYw31YnuKCVbSUe">
+  <div class="stacks" id="stacks" data-page-node-id="Z2LS2AQyAjdQIzCGGHCYEw">
+    <div class="stack" data-tab="home" data-page-node-id="chG4EuZErZ2bJVjw4xeNCo"></div>
+    <div class="stack" data-tab="create" data-page-node-id="ZXQ3rZAmGhju0rDNjc8qn6"></div>
+    <div class="stack" data-tab="template" data-page-node-id="VeIPijKQjD1WHJ0b4mAflD"></div>
+    <div class="stack" data-tab="mine" data-page-node-id="eApMmtt4HjBwz1UZMPe5DK"></div>
+  </div>
+
+  <nav class="tabbar" id="tabbar" data-page-node-id="IdEHFWdmfdaeHnhTnciGFT"></nav>
+
+  <div class="edge-back" id="edgeBack" aria-hidden="true" data-page-node-id="9iZgF9qrlFiQ45v9YqIW5H"></div>
+  <div class="sheet-mask" id="sheetMask" data-page-node-id="UzPiACPEH9d6xdQE4DFFJg"></div>
+  <div class="sheet-host" id="sheetHost" data-page-node-id="YP31PEOPa2PefGr2IvrCyY"></div>
+  <div class="toast" id="toast" data-page-node-id="x15Cn0trqsSKUmQRgxT3ul"></div>
+</div>
+<script>
+/* ============================================================
+   清单生成器 · 核心引擎
+   导航栈 / 触摸系统 / iOS 守卫 / 本地存储
+   ============================================================ */
+(function () {
+'use strict';
+
+/* ---------------- 工具 ---------------- */
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+/* ============================================================
+   1. iOS 守卫：禁止缩放、禁止长按选中、禁止回弹
+   ============================================================ */
+(function iosGuards() {
+  // 双指缩放 / 手势缩放
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((t) => {
+    document.addEventListener(t, (e) => e.preventDefault(), { passive: false });
+  });
+  // 多指触摸
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  // 双击放大
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  // 长按照片/链接系统菜单
+  document.addEventListener('contextmenu', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    e.preventDefault();
+  });
+  // 拖拽选中
+  document.addEventListener('selectstart', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    e.preventDefault();
+  });
+  // 页面级横向拖动
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 1) return;
+    const scroller = e.target.closest ? e.target.closest('.chips-scroll') : null;
+    if (scroller) return;
+    if (document.body.hasAttribute('data-dragging')) e.preventDefault();
+  }, { passive: false });
+})();
+
+/* ============================================================
+   2. 触摸系统：tap / 长按 / 按下反馈 / 防误触 / 防重复触发
+   ============================================================ */
+const TAP_SLOP = 10;        // 允许的手指移动像素
+const TAP_MAX_MS = 800;     // 最长按压时间
+const LONG_PRESS_MS = 480;  // 长按阈值
+const TAP_LOCK_MS = 320;    // 全局点击锁，防一次点击触发多个操作
+
+const Touch = {
+  lockUntil: 0,
+  locked() {
+    if (Date.now() < this.lockUntil) return true;
+    this.lockUntil = Date.now() + TAP_LOCK_MS;
+    return false;
+  },
+  reset() { this.lockUntil = 0; }
+};
+
+let ptr = null;
+
+function clearPressed() {
+  $$('.pressed').forEach((el) => el.classList.remove('pressed'));
+}
+
+function onPointerDown(e) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  /* 点击目标与长按目标分开解析：
+     - 点击取最近的 [data-tap]（通常是内部小按钮）
+     - 长按取其祖先 [data-lp]（通常是承载整行/整卡的容器）
+     二者可在不同元素上，因此即使没有 [data-tap] 也要允许长按触发 */
+  const lpEl = e.target.closest ? e.target.closest('[data-lp]') : null;
+  const target = e.target.closest ? e.target.closest('[data-tap]') : null;
+  clearPressed();
+  if (!target && !lpEl) { ptr = null; return; }
+
+  ptr = {
+    el: target,
+    lpEl: lpEl,
+    x: e.clientX, y: e.clientY,
+    t: Date.now(),
+    moved: false,
+    fired: false,
+    lpTimer: null,
+    scrollHost: e.target.closest ? e.target.closest('.screen-body,.sheet-body,.chips-scroll') : null
+  };
+  /* 只在真正的点击目标（内部小按钮）上加按下态，绝不给整行加灰色，
+     长按整行排序/菜单仍由 data-lp 解析，不依赖 pressed 类 —— 交互因此更轻量 */
+  if (target) target.classList.add('pressed');
+
+  const kind = lpEl ? lpEl.getAttribute('data-lp') : null;
+  if (kind) {
+    ptr.lpTimer = setTimeout(() => {
+      if (ptr && !ptr.moved && !ptr.fired) {
+        ptr.fired = true;
+        if (target) target.classList.remove('pressed');
+        if (lpEl) lpEl.classList.remove('pressed');
+        if (navigator.vibrate) { try { navigator.vibrate(8); } catch (_) {} }
+        Bus.emit('longpress', { el: lpEl, kind: kind, id: lpEl.getAttribute('data-lp-id') });
+      }
+    }, LONG_PRESS_MS);
+  }
+}
+
+function onPointerMove(e) {
+  if (!ptr) return;
+  const dx = e.clientX - ptr.x;
+  const dy = e.clientY - ptr.y;
+  if (!ptr.moved && Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP) {
+    ptr.moved = true;
+    if (ptr.el) ptr.el.classList.remove('pressed');
+    if (ptr.lpTimer) { clearTimeout(ptr.lpTimer); ptr.lpTimer = null; }
+  }
+}
+
+function onPointerUp(e) {
+  if (!ptr) return;
+  const p = ptr;
+  ptr = null;
+  if (p.lpTimer) clearTimeout(p.lpTimer);
+  if (p.el) p.el.classList.remove('pressed');
+  if (p.lpEl) p.lpEl.classList.remove('pressed');
+  if (p.fired || p.moved) return;
+  if (Date.now() - p.t > TAP_MAX_MS) return;
+  if (Touch.locked()) return;
+
+  if (!p.el) return;
+  const action = p.el.getAttribute('data-tap');
+  if (!action) return;
+  const arg = p.el.getAttribute('data-arg');
+  Bus.emit('tap', { action: action, arg: arg, el: p.el });
+}
+
+function onPointerCancel() {
+  if (ptr) {
+    if (ptr.lpTimer) clearTimeout(ptr.lpTimer);
+    if (ptr.el) ptr.el.classList.remove('pressed');
+    if (ptr.lpEl) ptr.lpEl.classList.remove('pressed');
+    ptr = null;
+  }
+}
+
+document.addEventListener('pointerdown', onPointerDown, { passive: true });
+document.addEventListener('pointermove', onPointerMove, { passive: true });
+document.addEventListener('pointerup', onPointerUp, { passive: true });
+document.addEventListener('pointercancel', onPointerCancel, { passive: true });
+window.addEventListener('blur', onPointerCancel);
+// 兜底：屏蔽原生 click 造成的二次触发
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('[data-tap]')) e.preventDefault();
+}, { passive: false });
+
+/* ============================================================
+   3. 事件总线
+   ============================================================ */
+const Bus = {
+  map: {},
+  on(k, fn) { (this.map[k] = this.map[k] || []).push(fn); },
+  emit(k, payload) { (this.map[k] || []).forEach((fn) => { try { fn(payload); } catch (err) { console.error(err); } }); }
+};
+
+/* ============================================================
+   4. 图标（全部 SVG，不使用 emoji）
+   ============================================================ */
+const ICONS = {
+  home: '<path d="M3 10.2 L12 3 L21 10.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.6 9.4 V20 H18.4 V9.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  plus: '<rect x="11" y="4.6" width="2" height="14.8" rx="1" fill="currentColor"/><rect x="4.6" y="11" width="14.8" height="2" rx="1" fill="currentColor"/>',
+  template: '<rect x="4" y="3.6" width="16" height="16.8" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8" y="8.4" width="8" height="1.7" rx="0.85" fill="currentColor"/><rect x="8" y="12.4" width="8" height="1.7" rx="0.85" fill="currentColor"/><rect x="8" y="16.4" width="5" height="1.7" rx="0.85" fill="currentColor"/>',
+  user: '<circle cx="12" cy="8.4" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.6 20.4 C5.4 16.2 8.4 14 12 14 C15.6 14 18.6 16.2 19.4 20.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  back: '<path d="M14.5 4.5 L7 12 L14.5 19.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  chevron: '<path d="M9.5 4.5 L16 12 L9.5 19.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  search: '<circle cx="10.8" cy="10.8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M15.6 15.6 L20.4 20.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>',
+  more: '<circle cx="5.4" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="18.6" cy="12" r="1.8" fill="currentColor"/>',
+  trash: '<path d="M4.6 6.8 H19.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.4 6.8 V4.6 H14.6 V6.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.6 6.8 L7.6 20 H16.4 L17.4 6.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  edit: '<path d="M4.8 19.2 L5.6 15.2 L15.4 5.4 C16.2 4.6 17.4 4.6 18.2 5.4 C19 6.2 19 7.4 18.2 8.2 L8.4 18 L4.8 19.2 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+  drag: '<circle cx="9" cy="6" r="1.6" fill="currentColor"/><circle cx="15" cy="6" r="1.6" fill="currentColor"/><circle cx="9" cy="12" r="1.6" fill="currentColor"/><circle cx="15" cy="12" r="1.6" fill="currentColor"/><circle cx="9" cy="18" r="1.6" fill="currentColor"/><circle cx="15" cy="18" r="1.6" fill="currentColor"/>',
+  box: '<rect x="3.4" y="7.4" width="17.2" height="12.6" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="3.4" y="4" width="17.2" height="4.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="10.8" y="7.4" width="2.4" height="12.6" fill="currentColor"/>',
+  info: '<circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="11" y="10.6" width="2" height="6.6" rx="1" fill="currentColor"/><circle cx="12" cy="7.6" r="1.2" fill="currentColor"/>',
+  check: '<path d="M5.4 12.4 L9.6 16.6 L18.6 7.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  plane: '<path d="M2.8 13.2 L21.2 4.6 L15.4 21 L12.2 14.8 L2.8 13.2 Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+  sofa: '<path d="M4.6 12.4 V8.4 C4.6 6.7 6 5.4 7.7 5.4 H16.3 C18 5.4 19.4 6.7 19.4 8.4 V12.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><rect x="2.6" y="12.4" width="18.8" height="6.6" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6.6 12.4 V16.4 M17.4 12.4 V16.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  cat: '<path d="M7.4 8.6 C7.4 8.6 7 4.6 9.2 5.4 C10 5.7 10.6 6.6 10.6 6.6 L13.4 6.6 C13.4 6.6 14 5.7 14.8 5.4 C17 4.6 16.6 8.6 16.6 8.6 C16.6 8.6 18 10.4 18 13.8 C18 17.8 15.4 20 12 20 C8.6 20 6 17.8 6 13.8 C6 10.4 7.4 8.6 7.4 8.6 Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="9.8" cy="12.6" r="1.1" fill="currentColor"/><circle cx="14.2" cy="12.6" r="1.1" fill="currentColor"/>',
+  party: '<path d="M4 20 L7 11 L13 17 L20 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="4" r="2" fill="currentColor"/>',
+  camera: '<rect x="3" y="6.6" width="18" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="9" y="3.4" width="5" height="3" rx="1.2" fill="currentColor"/>',
+  bag: '<path d="M4.6 8 H19.4 L18.4 20.4 H5.6 L4.6 8 Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.6 8 V5.6 C8.6 4.2 10 3.4 12 3.4 C14 3.4 15.4 4.2 15.4 5.6 V8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  heart: '<path d="M12 20 C12 20 3.6 14.8 3.6 9.4 C3.6 6.6 5.8 4.6 8.2 4.6 C9.9 4.6 11.3 5.6 12 6.8 C12.7 5.6 14.1 4.6 15.8 4.6 C18.2 4.6 20.4 6.6 20.4 9.4 C20.4 14.8 12 20 12 20 Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>',
+  clock: '<circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.2 V12 L15.6 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+  archive: '<rect x="3.4" y="4.6" width="17.2" height="4.6" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 9.2 V18.8 C5 19.6 5.6 20.2 6.4 20.2 H17.6 C18.4 20.2 19 19.6 19 18.8 V9.2" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="10" y="12.6" width="4" height="3" rx="1" fill="currentColor"/>',
+  layers: '<path d="M12 3.4 L21 8 L12 12.6 L3 8 L12 3.4 Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3.6 12.6 L12 16.8 L20.4 12.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.6 16.8 L12 21 L20.4 16.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+  tune: '<path d="M4 7.4 H14 M17.6 7.4 H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15.8" cy="7.4" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 16.6 H9 M12.6 16.6 H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10.8" cy="16.6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+  close: '<path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+};
+
+function svg(name, cls) {
+  return '<svg class="' + (cls || '') + '" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + (ICONS[name] || '') + '</svg>';
+}
+
+/* 状态圆点（三种清单共用绘制） */
+function dotSvg(state, kind) {
+  if (kind === 'move') {
+    if (state === 'packed') {
+      return '<svg class="row-dot" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="#2E9E7E"/><rect x="6.4" y="6.4" width="7.2" height="7.2" rx="1.6" fill="#FFFFFF"/></svg>';
+    }
+    if (state === 'moved' || state === 'confirmed') {
+      return '<svg class="row-dot" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="#2E9E7E"/><path d="M6 10.2 L8.6 12.8 L14 7.2" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    return '<svg class="row-dot" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9.2" stroke="#C9CFD8" stroke-width="1.6" fill="none"/></svg>';
+  }
+  if (state === 'done') {
+    return '<svg class="row-dot" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="#2E9E7E"/><path d="M6 10.2 L8.6 12.8 L14 7.2" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  if (state === 'skip') {
+    return '<svg class="row-dot" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="#DFE3E8"/><rect x="6" y="9.2" width="8" height="1.6" rx="0.8" fill="#FFFFFF"/></svg>';
+  }
+  return '<svg class="row-dot" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9.2" stroke="#C9CFD8" stroke-width="1.6" fill="none"/></svg>';
+}
+
+/* ============================================================
+   5. 本地存储
+   ============================================================ */
+const DB = {
+  KEY: 'qingdan.generator.v1',
+  data: null,
+  load() {
+    let raw = null;
+    try { raw = localStorage.getItem(this.KEY); } catch (_) {}
+    let d = null;
+    if (raw) { try { d = JSON.parse(raw); } catch (_) { d = null; } }
+    if (!d || typeof d !== 'object') d = {};
+    this.data = {
+      version: 1,
+      lists: Array.isArray(d.lists) ? d.lists : [],
+      templates: Array.isArray(d.templates) ? d.templates : [],
+      items: Array.isArray(d.items) ? d.items : [],
+      recent: Array.isArray(d.recent) ? d.recent : [],
+      activeTab: d.activeTab || 'home',
+      activeListId: d.activeListId || null
+    };
+    return this.data;
+  },
+  save() {
+    try { localStorage.setItem(this.KEY, JSON.stringify(this.data)); }
+    catch (e) { console.warn('保存失败', e); }
+  }
+};
+
+/* ============================================================
+   6. 导航栈
+   ============================================================ */
+const TABS = [
+  { id: 'home', label: '首页', icon: 'home' },
+  { id: 'create', label: '新建', icon: 'plus' },
+  { id: 'template', label: '模板', icon: 'template' },
+  { id: 'mine', label: '我的', icon: 'user' }
+];
+
+const Nav = {
+  stacks: { home: [], create: [], template: [], mine: [] },
+  active: 'home',
+  animating: false,
+
+  el(tab) { return $('.stack[data-tab="' + tab + '"]'); },
+
+  /* 渲染并推入新页面 */
+  push(tab, page) {
+    const host = this.el(tab);
+    const prev = this.stacks[tab][this.stacks[tab].length - 1];
+    const screen = document.createElement('div');
+    screen.className = 'screen push-in';
+    screen.innerHTML = page.render();
+    host.appendChild(screen);
+    page.el = screen;
+    this.stacks[tab].push(page);
+
+    if (prev) prev.el.style.transform = '';
+    // 强制重排后触发滑入
+    void screen.offsetWidth;
+    screen.classList.remove('push-in');
+    if (prev) { prev.el.style.transform = 'translate3d(-24%,0,0)'; prev.el.classList.add('dim'); }
+    if (page.onEnter) page.onEnter(screen);
+    this.syncEdge();
+    return page;
+  },
+
+  pop() {
+    const tab = this.active;
+    const stack = this.stacks[tab];
+    if (stack.length <= 1) return false;
+    const page = stack.pop();
+    const prev = stack[stack.length - 1];
+    page.el.classList.add('pop-out');
+    if (prev) { prev.el.style.transform = ''; prev.el.classList.remove('dim'); }
+    setTimeout(() => {
+      if (page.el.parentNode) page.el.parentNode.removeChild(page.el);
+      if (page.onLeave) page.onLeave();
+      this.syncEdge();
+    }, 290);
+    if (prev && prev.onReenter) prev.onReenter(prev.el);
+    return true;
+  },
+
+  /* 切换 Tab：保留各栈，重复点击当前 Tab 回到该栈根 */
+  switchTab(tab) {
+    if (this.active === tab) {
+      if (this.stacks[tab].length > 1) this.popToRoot(tab);
+      else this.scrollTop(tab);
+      return;
+    }
+    const from = this.active;
+    this.active = tab;
+    $$('.stack').forEach((s) => s.classList.toggle('active', s.getAttribute('data-tab') === tab));
+    this.renderTabBar();
+    DB.data.activeTab = tab; DB.save();
+    const stack = this.stacks[tab];
+    if (stack.length && stack[stack.length - 1].onReenter) stack[stack.length - 1].onReenter(stack[stack.length - 1].el);
+    this.syncEdge();
+    // 滚到顶部
+    const body = $('.stack[data-tab="' + tab + '"] .screen:last-child .screen-body');
+    if (body) body.scrollTop = 0;
+    return from;
+  },
+
+  popToRoot(tab) {
+    const stack = this.stacks[tab];
+    while (stack.length > 1) {
+      const p = stack.pop();
+      if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
+    }
+    const root = stack[0];
+    if (root) { root.el.style.transform = ''; root.el.classList.remove('dim'); if (root.onReenter) root.onReenter(root.el); }
+    this.syncEdge();
+  },
+
+  scrollTop(tab) {
+    const body = $('.stack[data-tab="' + tab + '"] .screen:last-child .screen-body');
+    if (!body) return;
+    if (typeof body.scrollTo === 'function') body.scrollTo({ top: 0, behavior: 'smooth' });
+    else body.scrollTop = 0;
+  },
+
+  /* 重建某个 Tab 的根页面 */
+  reset(tab, pageFactory) {
+    const host = this.el(tab);
+    host.innerHTML = '';
+    this.stacks[tab] = [];
+    const page = pageFactory();
+    const screen = document.createElement('div');
+    screen.className = 'screen';
+    screen.innerHTML = page.render();
+    host.appendChild(screen);
+    page.el = screen;
+    this.stacks[tab].push(page);
+    if (page.onEnter) page.onEnter(screen);
+    this.syncEdge();
+  },
+
+  /* 重绘当前栈顶页面（保持滚动位置） */
+  refresh() {
+    const stack = this.stacks[this.active];
+    if (!stack.length) return;
+    const page = stack[stack.length - 1];
+    const body = page.el.querySelector('.screen-body');
+    const top = body ? body.scrollTop : 0;
+    page.el.innerHTML = page.render();
+    if (page.onEnter) page.onEnter(page.el);
+    const nb = page.el.querySelector('.screen-body');
+    if (nb) nb.scrollTop = top;
+    this.syncEdge();
+  },
+
+  /* 重绘某个 Tab 的所有页面 */
+  refreshTab(tab) {
+    this.stacks[tab].forEach((page) => {
+      const body = page.el.querySelector('.screen-body');
+      const top = body ? body.scrollTop : 0;
+      page.el.innerHTML = page.render();
+      if (page.onEnter) page.onEnter(page.el);
+      const nb = page.el.querySelector('.screen-body');
+      if (nb) nb.scrollTop = top;
+    });
+  },
+
+  syncEdge() {
+    const stack = this.stacks[this.active];
+    $('#edgeBack').style.display = stack && stack.length > 1 ? 'block' : 'none';
+  },
+
+  renderTabBar() {
+    const bar = $('#tabbar');
+    bar.innerHTML =
+      '<div class="tab-pill">' +
+      TABS.map((t) =>
+        '<button class="tab-item' + (t.id === this.active ? ' on' : '') + '" data-tap="tab" data-arg="' + t.id + '">' +
+        svg(t.icon, 'tab-ico') +
+        '<span class="tab-label">' + t.label + '</span>' +
+        '</button>'
+      ).join('') +
+      '</div>';
+  }
+};
+
+/* ============================================================
+   7. 边缘返回手势
+   ============================================================ */
+(function edgeBackGesture() {
+  const edge = $('#edgeBack');
+  let startX = 0, startY = 0, tracking = false, decided = false, dx = 0, cur = null, prev = null;
+
+  edge.addEventListener('touchstart', (e) => {
+    const stack = Nav.stacks[Nav.active];
+    if (!stack || stack.length <= 1) return;
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY;
+    tracking = true; decided = false; dx = 0;
+    cur = stack[stack.length - 1];
+    prev = stack[stack.length - 2];
+  }, { passive: true });
+
+  edge.addEventListener('touchmove', (e) => {
+    if (!tracking) return;
+    const t = e.touches[0];
+    const ddx = t.clientX - startX;
+    const ddy = t.clientY - startY;
+    if (!decided) {
+      if (Math.abs(ddy) > Math.abs(ddx) && Math.abs(ddy) > 10) { tracking = false; return; }
+      if (ddx > 6) decided = true;
+      else if (ddx < -6) { tracking = false; return; }
+    }
+    if (!decided) return;
+    dx = clamp(ddx, 0, window.innerWidth);
+    document.body.setAttribute('data-dragging', '1');
+    cur.el.classList.add('dragging');
+    if (prev) prev.el.classList.add('dragging');
+    cur.el.style.transform = 'translate3d(' + dx + 'px,0,0)';
+    if (prev) {
+      const p = -0.24 + (dx / window.innerWidth) * 0.24;
+      prev.el.style.transform = 'translate3d(' + (p * 100) + '%,0,0)';
+      prev.el.style.filter = 'brightness(' + (0.94 + 0.06 * (dx / window.innerWidth)) + ')';
+    }
+  }, { passive: true });
+
+  function finish() {
+    if (!tracking || !decided) { tracking = false; return; }
+    tracking = false;
+    document.body.removeAttribute('data-dragging');
+    cur.el.classList.remove('dragging');
+    if (prev) prev.el.classList.remove('dragging');
+    const shouldPop = dx > window.innerWidth * 0.3;
+    if (shouldPop) {
+      cur.el.style.transition = '';
+      cur.el.classList.add('pop-out');
+      setTimeout(() => {
+        if (cur.el.parentNode) cur.el.parentNode.removeChild(cur.el);
+        if (prev) { prev.el.style.filter = ''; prev.el.classList.remove('dim'); }
+      }, 290);
+      const stack = Nav.stacks[Nav.active];
+      const p = stack.pop();
+      if (p.onLeave) p.onLeave();
+      if (prev) {
+        prev.el.style.transform = '';
+        prev.el.style.filter = '';
+        prev.el.classList.remove('dim');
+        if (prev.onReenter) prev.onReenter(prev.el);
+      }
+      Nav.syncEdge();
+    } else {
+      cur.el.style.transform = '';
+      if (prev) {
+        prev.el.style.transform = 'translate3d(-24%,0,0)';
+        prev.el.style.filter = '';
+      }
+    }
+    dx = 0;
+  }
+
+  edge.addEventListener('touchend', finish, { passive: true });
+  edge.addEventListener('touchcancel', finish, { passive: true });
+})();
+
+/* ============================================================
+   8. Sheet / ActionSheet / 输入弹窗 / Toast
+   ============================================================ */
+const Sheet = {
+  open(html, opts) {
+    opts = opts || {};
+    const host = $('#sheetHost');
+    const mask = $('#sheetMask');
+    host.innerHTML = '<div class="sheet">' +
+      '<div class="sheet-grab"></div>' +
+      (opts.title ? '<div class="sheet-title">' + esc(opts.title) + '</div>' : '') +
+      '<div class="sheet-body">' + html + '</div>' +
+      '</div>';
+    mask.classList.add('on');
+    void host.offsetWidth;
+    host.querySelector('.sheet').classList.add('on');
+    host.style.pointerEvents = 'auto';
+    if (opts.onOpen) opts.onOpen(host);
+    this.onClose = opts.onClose || null;
+  },
+  close() {
+    const host = $('#sheetHost');
+    const mask = $('#sheetMask');
+    const s = host.querySelector('.sheet');
+    if (s) s.classList.remove('on');
+    mask.classList.remove('on');
+    host.style.pointerEvents = 'none';
+    if (this.onClose) { const f = this.onClose; this.onClose = null; f(); }
+    setTimeout(() => { if (!mask.classList.contains('on')) host.innerHTML = ''; }, 300);
+  },
+  isOpen() { return $('#sheetMask').classList.contains('on'); }
+};
+
+$('#sheetMask').addEventListener('pointerdown', () => Sheet.close());
+
+function actionSheet(title, actions) {
+  const html = '<div class="sheet-actions">' + actions.map((a) =>
+    '<button class="act-row' + (a.style ? ' ' + a.style : '') + '" data-tap="act" data-arg="' + a.key + '">' + esc(a.label) + '</button>'
+  ).join('') + '</div>' +
+    '<button class="act-row" data-tap="sheet-close">取消</button>';
+  Sheet._actions = actions;
+  Sheet.open(html, { title: title });
+}
+
+/* 文本输入弹窗（键盘避让已处理） */
+function promptSheet(title, opts) {
+  opts = opts || {};
+  const html =
+    '<div class="field" id="pf">' +
+    '<input id="pi" type="text" placeholder="' + esc(opts.placeholder || '') + '" value="' + esc(opts.value || '') + '" ' +
+    'autocomplete="off" autocorrect="off" autocapitalize="sentences" enterkeyhint="done" maxlength="' + (opts.max || 40) + '">' +
+    '<button class="clear" data-tap="field-clear" data-arg="pi">×</button>' +
+    '</div>' +
+    (opts.hint ? '<div class="meta-line">' + esc(opts.hint) + '</div>' : '') +
+    '<div class="cta-row">' +
+    '<button class="cta ghost" data-tap="sheet-close">取消</button>' +
+    '<button class="cta" data-tap="prompt-ok">' + esc(opts.ok || '确定') + '</button>' +
+    '</div>';
+  Sheet._promptCb = opts.onOk;
+  Sheet.open(html, {
+    title: title,
+    onOpen() {
+      const input = $('#pi');
+      if (!input) return;
+      $('#pf').classList.toggle('has-value', !!input.value);
+      input.addEventListener('input', () => $('#pf').classList.toggle('has-value', !!input.value));
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); Bus.emit('tap', { action: 'prompt-ok' }); } });
+      setTimeout(() => input.focus(), 260);
+    }
+  });
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+}
+
+/* 键盘避让：输入框聚焦时抬起 Sheet / CTA */
+(function keyboardAvoid() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const host = $('#sheetHost');
+  function apply() {
+    const offset = Math.max(0, window.innerHeight - vv.height - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0));
+    host.style.transform = offset > 0 ? 'translateY(-' + offset + 'px)' : '';
+  }
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+})();
+
+/* 暴露到全局 */
+window.App = { $, $$, esc, uid, clamp, svg, dotSvg, DB, Nav, TABS, Sheet, actionSheet, promptSheet, toast, Bus, Touch, ICONS };
+})();
+
+</script>
+<script>
+/* ============================================================
+   清单生成器 · 场景库 / 条件库 / 清单生成规则
+   ============================================================ */
+(function () {
+'use strict';
+
+/* ---------------- 条件库 ---------------- */
+const CONDS = {
+  days: {
+    title: '出行天数',
+    type: 'grid', cols: 4,
+    options: [
+      { k: '1-2', label: '1-2天', n: 2 },
+      { k: '3', label: '3天', n: 3 },
+      { k: '4-7', label: '4-7天', n: 5 },
+      { k: '7+', label: '7天以上', n: 8 }
+    ],
+    def: '3'
+  },
+  season: {
+    title: '季节',
+    type: 'grid', cols: 4,
+    options: [
+      { k: 'spring', label: '春季' },
+      { k: 'summer', label: '夏季' },
+      { k: 'autumn', label: '秋季' },
+      { k: 'winter', label: '冬季' }
+    ],
+    def: ''
+  },
+  transport: {
+    title: '交通方式',
+    type: 'grid', cols: 4,
+    options: [
+      { k: 'plane', label: '飞机' },
+      { k: 'train', label: '高铁' },
+      { k: 'selfdrive', label: '自驾' },
+      { k: 'coach', label: '大巴' }
+    ],
+    def: 'plane'
+  },
+  stay: {
+    title: '住宿方式',
+    type: 'grid', cols: 4,
+    options: [
+      { k: 'hotel', label: '酒店' },
+      { k: 'homestay', label: '民宿' },
+      { k: 'friend', label: '亲友家' },
+      { k: 'camp', label: '露营' }
+    ],
+    def: 'hotel'
+  },
+  photo: {
+    title: '是否拍照',
+    type: 'switch',
+    def: false,
+    sub: '加入相机、备用电池等拍摄装备'
+  },
+  activity: {
+    title: '特殊活动',
+    type: 'grid', cols: 3,
+    options: [
+      { k: 'none', label: '无' },
+      { k: 'seaside', label: '海边' },
+      { k: 'camp', label: '露营' },
+      { k: 'hiking', label: '徒步' },
+      { k: 'concert', label: '演唱会' },
+      { k: 'business', label: '出差办公' }
+    ],
+    def: 'none'
+  },
+  /* 搬家 */
+  furniture: {
+    title: '是否带家具',
+    type: 'grid', cols: 2,
+    options: [{ k: 'yes', label: '带家具' }, { k: 'no', label: '不带家具' }],
+    def: 'yes'
+  },
+  appliance: {
+    title: '大型电器',
+    type: 'grid', cols: 2,
+    options: [{ k: 'yes', label: '有大型电器' }, { k: 'no', label: '无大型电器' }],
+    def: 'yes'
+  },
+  mover: {
+    title: '搬运方式',
+    type: 'grid', cols: 2,
+    options: [{ k: 'self', label: '自己搬' }, { k: 'company', label: '搬家公司' }],
+    def: 'company'
+  },
+  /* 养猫 */
+  catAge: {
+    title: '猫咪年龄',
+    type: 'grid', cols: 2,
+    options: [{ k: 'kitten', label: '幼猫' }, { k: 'adult', label: '成猫' }],
+    def: 'kitten'
+  },
+  catCount: {
+    title: '猫咪数量',
+    type: 'grid', cols: 2,
+    options: [{ k: 'one', label: '一只' }, { k: 'multi', label: '多只' }],
+    def: 'one'
+  },
+  firstTime: {
+    title: '是否第一次养猫',
+    type: 'grid', cols: 2,
+    options: [{ k: 'yes', label: '第一次养' }, { k: 'no', label: '养过猫' }],
+    def: 'yes'
+  },
+  pickup: {
+    title: '是否需要接猫回家',
+    type: 'switch',
+    def: true,
+    sub: '加入「接猫回家」阶段事项'
+  }
+};
+
+/* ---------------- 场景库 ---------------- */
+/* kind: travel | move | cat | life */
+const SCENES = [
+  /* 出行 */
+  { id: 'travel', name: '旅行', group: '出行', kind: 'travel', conds: ['days', 'season', 'transport', 'stay', 'photo', 'activity'] },
+  { id: 'shorttrip', name: '短途旅行', group: '出行', kind: 'travel', conds: ['days', 'season', 'transport', 'stay', 'photo'], preset: { days: '1-2', stay: 'hotel' } },
+  { id: 'business', name: '出差', group: '出行', kind: 'travel', conds: ['days', 'season', 'transport', 'stay', 'photo'], preset: { activity: 'business', stay: 'hotel' } },
+  { id: 'weekend', name: '周末出行', group: '出行', kind: 'travel', light: true, conds: ['days', 'transport', 'stay', 'photo'], preset: { days: '1-2' } },
+  { id: 'hotel', name: '住酒店', group: '出行', kind: 'travel', light: true, conds: ['days', 'season', 'photo'], preset: { stay: 'hotel', transport: 'train' } },
+  { id: 'overnight', name: '过夜', group: '出行', kind: 'travel', light: true, conds: ['days', 'transport', 'photo'], preset: { days: '1-2', stay: 'friend' } },
+  { id: 'seaside', name: '海边', group: '出行', kind: 'travel', conds: ['days', 'season', 'transport', 'stay', 'photo'], preset: { activity: 'seaside' } },
+  { id: 'camping', name: '露营', group: '出行', kind: 'travel', conds: ['days', 'season', 'transport', 'photo'], preset: { activity: 'camp', stay: 'camp' } },
+  { id: 'selfdrive', name: '自驾', group: '出行', kind: 'travel', conds: ['days', 'season', 'stay', 'photo'], preset: { transport: 'selfdrive' } },
+  { id: 'plane', name: '飞机', group: '出行', kind: 'travel', conds: ['days', 'season', 'stay', 'photo'], preset: { transport: 'plane' } },
+  { id: 'highspeed', name: '高铁', group: '出行', kind: 'travel', conds: ['days', 'season', 'stay', 'photo'], preset: { transport: 'train' } },
+  { id: 'concert', name: '演唱会', group: '出行', kind: 'travel', light: true, conds: ['days', 'transport', 'stay', 'photo'], preset: { activity: 'concert', days: '1-2' } },
+  { id: 'photo', name: '拍照', group: '出行', kind: 'travel', light: true, conds: ['days', 'season', 'transport', 'stay'], preset: { photo: true } },
+
+  /* 生活 */
+  { id: 'moving', name: '搬家', group: '生活', kind: 'move', conds: ['furniture', 'appliance', 'mover'] },
+  { id: 'renting', name: '租房', group: '生活', kind: 'life',
+    items: [
+      ['证件材料', ['身份证复印件', '工作证明', '押金与租金', '租赁合同']],
+      ['看房检查', ['水电是否正常', '网络信号', '采光通风', '隔音情况', '周边配套']],
+      ['入住准备', ['钥匙与门禁', '更换锁芯', '开荒清洁', '宽带办理', '燃气开通']]
+    ] },
+  { id: 'school', name: '开学', group: '生活', kind: 'life',
+    items: [
+      ['证件材料', ['录取通知书', '身份证', '学籍档案', '组织关系', '证件照']],
+      ['宿舍用品', ['被褥床品', '洗漱用品', '衣架', '插排', '台灯']],
+      ['学习用品', ['笔记本', '笔袋', '书包', 'U盘', '电脑充电器']],
+      ['生活用品', ['水杯', '常备药', '雨伞', '晾衣杆']]
+    ] },
+  { id: 'party', name: '聚会', group: '生活', kind: 'life',
+    items: [
+      ['场地', ['场地预订', '场地布置', '背景音乐', '座位安排']],
+      ['餐饮', ['饮料', '零食', '餐具纸杯', '蛋糕']],
+      ['其他', ['拍照道具', '垃圾袋', '备用充电宝', '急救包']]
+    ] },
+  { id: 'birthday', name: '生日', group: '生活', kind: 'life',
+    items: [
+      ['场地布置', ['气球', '横幅', '彩带', '桌布']],
+      ['餐饮', ['生日蛋糕', '饮料', '零食', '蜡烛']],
+      ['流程', ['礼物准备', '拍照安排', '音乐歌单', '时间安排']]
+    ] },
+  { id: 'shopping', name: '日常采购', group: '生活', kind: 'life',
+    items: [
+      ['食材', ['蔬菜', '水果', '肉类', '蛋奶']],
+      ['日用品', ['纸巾', '洗衣液', '洗洁精', '垃圾袋']],
+      ['其他', ['米面粮油', '调味品', '清洁工具']]
+    ] },
+
+  /* 宠物 */
+  { id: 'catready', name: '准备养猫', group: '宠物', kind: 'cat', conds: ['catAge', 'catCount', 'firstTime', 'pickup'] },
+  { id: 'cathome', name: '接猫回家', group: '宠物', kind: 'cat', conds: ['catAge', 'catCount', 'firstTime'], preset: { pickup: true } },
+  { id: 'catnewhome', name: '猫咪新家准备', group: '宠物', kind: 'cat', conds: ['catAge', 'catCount'], preset: { pickup: false } },
+  { id: 'catdaily', name: '猫咪日常用品', group: '宠物', kind: 'cat', conds: ['catCount'], preset: { pickup: false } },
+  { id: 'catout', name: '猫咪外出', group: '宠物', kind: 'cat', conds: ['catCount'], preset: { pickup: false },
+    extra: [['外出用品', ['航空箱', '牵引绳', '宠物背包', '便携水壶', '一次性尿垫']]] },
+  { id: 'catfoster', name: '猫咪寄养准备', group: '宠物', kind: 'cat', conds: ['catCount'], preset: { pickup: false },
+    extra: [['寄养准备', ['寄养机构确认', '疫苗本', '常备猫粮', '常用玩具', '紧急联系人']]] }
+];
+
+const SCENE_MAP = {};
+SCENES.forEach((s) => { SCENE_MAP[s.id] = s; });
+
+/* ---------------- 旅行清单生成 ---------------- */
+function genTravel(c) {
+  const n = (CONDS.days.options.find((o) => o.k === (c.days || '3')) || { n: 3 }).n;
+  const cats = [];
+  const put = (cat, text, qty) => {
+    let g = cats.find((x) => x.name === cat);
+    if (!g) { g = { name: cat, items: [] }; cats.push(g); }
+    g.items.push({ text: text, qty: qty || 0 });
+  };
+  const is = (k, v) => c[k] === v;
+
+  /* 证件 */
+  put('证件', '身份证');
+  put('证件', '银行卡');
+  put('证件', '现金零钱');
+  if (is('transport', 'plane')) put('证件', '机票行程单');
+  if (is('transport', 'train')) put('证件', '高铁票');
+  if (is('transport', 'selfdrive')) { put('证件', '驾驶证'); put('证件', '行驶证'); }
+  if (is('stay', 'hotel') || is('stay', 'homestay')) put('证件', '住宿预订确认单');
+
+  /* 衣物 */
+  put('衣物', 'T恤', n + 2);
+  put('衣物', '内衣', n + 2);
+  put('衣物', '袜子', n + 2);
+  put('衣物', '裤子', Math.min(4, Math.ceil(n / 2) + 1));
+  put('衣物', '外套', 1);
+  put('衣物', '睡衣', 1);
+  put('衣物', '运动鞋', 1);
+  if (is('stay', 'homestay') || is('stay', 'friend') || is('stay', 'camp')) put('衣物', '拖鞋', 1);
+  if (is('season', 'summer')) { put('衣物', '帽子', 1); put('衣物', '凉鞋', 1); }
+  if (is('season', 'winter')) { put('衣物', '厚外套', 1); put('衣物', '保暖内衣', 2); put('衣物', '手套围巾', 1); }
+  if (c.activity === 'seaside') { put('衣物', '泳衣', 1); put('衣物', '沙滩鞋', 1); }
+  if (c.activity === 'business') put('衣物', '正装衬衫', 2);
+  if (c.activity === 'hiking') { put('衣物', '登山鞋', 1); put('衣物', '速干衣', 2); }
+  if (c.activity === 'concert') put('衣物', '应援服', 1);
+
+  /* 电子设备 */
+  put('电子设备', '手机充电器');
+  put('电子设备', '充电宝');
+  put('电子设备', '耳机');
+  put('电子设备', '数据线', 2);
+  if (is('transport', 'plane')) put('电子设备', '转换插头');
+  if (is('transport', 'selfdrive')) { put('电子设备', '车载充电器'); put('电子设备', '手机支架'); }
+  if (c.photo) {
+    put('电子设备', '相机');
+    put('电子设备', '相机备用电池', 2);
+    put('电子设备', '存储卡', 2);
+    put('电子设备', '镜头清洁布');
+    if (c.activity === 'hiking' || is('stay', 'camp')) put('电子设备', '三脚架');
+  }
+  if (c.activity === 'business') { put('电子设备', '笔记本电脑'); put('电子设备', '电脑充电器'); }
+
+  /* 洗漱 */
+  put('洗漱', '牙刷牙膏');
+  put('洗漱', '洗面奶');
+  put('洗漱', '护肤品小样');
+  if (is('stay', 'homestay') || is('stay', 'camp') || is('stay', 'friend')) {
+    put('洗漱', '沐浴洗发'); put('洗漱', '毛巾');
+  }
+  if (is('season', 'summer') || c.activity === 'seaside') { put('洗漱', '防晒霜'); put('洗漱', '墨镜'); }
+  if (is('season', 'summer') || c.activity === 'camp' || c.activity === 'hiking') put('洗漱', '驱蚊液');
+  if (is('season', 'winter')) put('洗漱', '润唇膏');
+
+  /* 日用品 */
+  put('日用品', '纸巾湿巾');
+  put('日用品', '雨伞');
+  put('日用品', '常备药');
+  put('日用品', '创可贴');
+  put('日用品', '指甲剪');
+  put('日用品', '水杯');
+
+  /* 食物 */
+  put('食物', '饮用水', 2);
+  put('食物', '零食');
+  if (is('transport', 'selfdrive') || c.activity === 'camp' || c.activity === 'hiking') put('食物', '能量补给');
+  if (is('stay', 'hotel') || is('stay', 'homestay')) put('食物', '泡面速食');
+
+  /* 活动用品 */
+  if (c.activity === 'seaside') {
+    put('活动用品', '沙滩巾'); put('活动用品', '防水袋'); put('活动用品', '浮潜镜'); put('活动用品', '沙滩玩具');
+  }
+  if (c.activity === 'camp') {
+    put('活动用品', '帐篷'); put('活动用品', '睡袋'); put('活动用品', '防潮垫'); put('活动用品', '营地灯');
+  }
+  if (c.activity === 'hiking') {
+    put('活动用品', '登山杖'); put('活动用品', '登山包'); put('活动用品', '护膝');
+  }
+  if (c.activity === 'concert') {
+    put('活动用品', '演唱会门票'); put('活动用品', '应援物'); put('活动用品', '护耳耳塞'); put('活动用品', '便携小风扇');
+  }
+  if (c.activity === 'business') {
+    put('活动用品', '名片'); put('活动用品', '文件资料'); put('活动用品', '签字笔');
+  }
+
+  /* 其他 */
+  put('其他', '背包');
+  put('其他', '折叠购物袋');
+  if (is('transport', 'selfdrive')) put('其他', '停车卡与零钱');
+
+  return cats;
+}
+
+/* 轻量出行（住酒店 / 过夜 / 演唱会 / 拍照等短时场景） */
+function genTravelLight(c) {
+  const cats = [];
+  const put = (cat, text, qty) => {
+    let g = cats.find((x) => x.name === cat);
+    if (!g) { g = { name: cat, items: [] }; cats.push(g); }
+    g.items.push({ text: text, qty: qty || 0 });
+  };
+  const is = (k, v) => c[k] === v;
+
+  put('证件', '身份证');
+  put('证件', '现金零钱');
+  if (is('transport', 'plane')) put('证件', '机票行程单');
+  if (is('transport', 'train')) put('证件', '高铁票');
+  if (is('transport', 'selfdrive')) put('证件', '驾驶证');
+
+  put('衣物', '换洗衣物', 2);
+  put('衣物', '外套', 1);
+  if (c.activity === 'seaside') put('衣物', '泳衣', 1);
+  if (c.activity === 'concert') put('衣物', '应援服', 1);
+  if (is('season', 'winter')) put('衣物', '厚外套', 1);
+
+  put('电子设备', '手机充电器');
+  put('电子设备', '充电宝');
+  put('电子设备', '数据线', 1);
+  if (c.photo) { put('电子设备', '相机'); put('电子设备', '相机备用电池', 1); put('电子设备', '存储卡', 1); }
+
+  if (is('stay', 'homestay') || is('stay', 'camp') || is('stay', 'friend')) {
+    put('洗漱', '牙刷牙膏'); put('洗漱', '洗面奶');
+  }
+  if (is('season', 'summer') || c.activity === 'seaside') put('洗漱', '防晒霜');
+
+  put('日用品', '纸巾湿巾');
+  put('日用品', '常备药');
+
+  if (c.activity === 'concert') {
+    put('活动用品', '演唱会门票'); put('活动用品', '应援物');
+    put('活动用品', '护耳耳塞'); put('活动用品', '便携小风扇');
+  }
+  if (c.activity === 'seaside') {
+    put('活动用品', '沙滩巾'); put('活动用品', '防水袋');
+  }
+  if (c.activity === 'camp') {
+    put('活动用品', '帐篷'); put('活动用品', '睡袋');
+  }
+
+  put('其他', '背包');
+  return cats;
+}
+
+/* ---------------- 搬家清单生成 ---------------- */
+const MOVE_BASE = [
+  ['卧室', [
+    ['衣物', ['当季衣物', '换季衣物', '鞋子', '包袋配饰']],
+    ['床上用品', ['被子', '枕头', '床单被套', '凉席床垫']],
+    ['书籍', ['常用书籍', '藏书', '杂志画册', '文具']],
+    ['个人物品', ['化妆品', '首饰手表', '药品', '闹钟']]
+  ]],
+  ['卫生间', [
+    ['洗漱用品', ['牙刷牙膏', '洗面奶', '沐浴洗发', '毛巾浴巾']],
+    ['护肤用品', ['水乳精华', '面膜', '防晒', '美妆工具']],
+    ['清洁用品', ['马桶刷', '清洁剂', '拖把扫把', '垃圾袋']]
+  ]],
+  ['厨房', [
+    ['餐具', ['碗盘', '筷子勺子', '杯子', '保鲜盒']],
+    ['厨具', ['锅具', '刀具砧板', '铲勺', '烘焙工具']],
+    ['食品', ['米面粮油', '调味品', '干货', '零食']],
+    ['小家电', ['电饭煲', '微波炉', '烧水壶', '破壁机']]
+  ]],
+  ['客厅', [
+    ['电器', ['电视', '空调', '扫地机器人', '音响']],
+    ['装饰品', ['挂画', '绿植', '摆件', '照片墙']],
+    ['书籍', ['书柜藏书', '影音光盘', '遥控器', '机顶盒']],
+    ['杂物', ['数据线', '工具箱', '备用灯泡', '遥控器电池']]
+  ]],
+  ['其他', [
+    ['文件', ['房产证合同', '证件', '票据保修卡', '说明书']],
+    ['贵重物品', ['现金首饰', '电子产品', '收藏品', '数据备份']],
+    ['零碎物品', ['钥匙', '雨伞', '宠物用品', '备用行李箱']]
+  ]]
+];
+
+function genMove(c) {
+  const cats = MOVE_BASE.map((room) => ({
+    name: room[0],
+    items: room[1].reduce((acc, sub) => acc.concat(sub[1].map((t) => ({ text: t, sub: sub[0] }))), [])
+  }));
+
+  const extra = [];
+  if (c.furniture === 'yes') {
+    extra.push({ text: '拆装工具', sub: '大件' });
+    extra.push({ text: '家具保护膜', sub: '大件' });
+    extra.push({ text: '螺丝收纳袋', sub: '大件' });
+  }
+  if (c.appliance === 'yes') {
+    extra.push({ text: '冰箱断电排水', sub: '大件' });
+    extra.push({ text: '洗衣机排水固定', sub: '大件' });
+    extra.push({ text: '空调拆机预约', sub: '大件' });
+  }
+  if (c.mover === 'company') {
+    extra.push({ text: '预约搬家公司', sub: '准备' });
+    extra.push({ text: '拍照留档贵重物品', sub: '准备' });
+  } else {
+    extra.push({ text: '借用手推车', sub: '准备' });
+    extra.push({ text: '预约搬家帮手', sub: '准备' });
+  }
+  extra.push({ text: '打包纸箱', sub: '准备' });
+  extra.push({ text: '气泡膜与缠绕膜', sub: '准备' });
+  extra.push({ text: '记号笔与标签', sub: '准备' });
+  extra.push({ text: '封箱胶带', sub: '准备' });
+  cats.push({ name: '搬家准备', items: extra });
+  return cats;
+}
+
+/* ---------------- 养猫清单生成 ---------------- */
+function genCat(c) {
+  const cats = [];
+  const put = (cat, text, cycle) => {
+    let g = cats.find((x) => x.name === cat);
+    if (!g) { g = { name: cat, items: [] }; cats.push(g); }
+    g.items.push({ text: text, cycle: cycle || '' });
+  };
+
+  /* 接猫前 · 固定 13 项 */
+  put('接猫前', '猫砂盆', c.catCount === 'multi' ? '2 个' : '');
+  put('接猫前', '猫砂');
+  put('接猫前', c.catAge === 'kitten' ? '幼猫粮' : '成猫粮');
+  put('接猫前', '食盆 + 水碗');
+  put('接猫前', '猫抓板');
+  put('接猫前', '运输箱');
+  put('接猫前', '猫窝');
+  put('接猫前', '逗猫棒');
+  put('接猫前', '猫玩具');
+  put('接猫前', '指甲剪');
+  put('接猫前', '梳子');
+  put('接猫前', '宠物湿巾');
+  put('接猫前', '体内外驱虫药');
+
+  /* 接猫回家 · 6 项 */
+  if (c.pickup) {
+    put('接猫回家', '确认隔离空间');
+    put('接猫回家', '放置猫砂盆');
+    put('接猫回家', '备好饮水与猫粮');
+    put('接猫回家', '检查门窗安全');
+    put('接猫回家', '收起危险物品');
+    put('接猫回家', '预约宠物医院建档');
+  }
+
+  /* 日常养猫 · 周期事项 6 项 */
+  put('日常养猫', '补充猫粮', '每天');
+  put('日常养猫', '补充饮水', '每天');
+  put('日常养猫', '清理猫砂', '每天');
+  put('日常养猫', '清洗食盆和水碗', '每周');
+  put('日常养猫', '整理猫咪用品', '每周');
+  put('日常养猫', '检查消耗品', '每月');
+
+  return cats;
+}
+
+/* ---------------- 生活类清单生成 ---------------- */
+function genLife(scene, c) {
+  const cats = (scene.items || []).map((g) => ({
+    name: g[0],
+    items: (g[1] || []).map((t) => ({ text: t }))
+  }));
+  if (scene.extra) {
+    scene.extra.forEach((g) => {
+      let target = cats.find((x) => x.name === g[0]);
+      if (!target) { target = { name: g[0], items: [] }; cats.push(target); }
+      g[1].forEach((t) => target.items.push({ text: t }));
+    });
+  }
+  return cats;
+}
+
+/* ---------------- 统一生成入口 ---------------- */
+function generate(sceneIds, conds) {
+  const scenes = sceneIds.map((id) => SCENE_MAP[id]).filter(Boolean);
+  if (!scenes.length) return { cats: [], kind: 'travel', title: '' };
+
+  /* 主 kind 优先级：move > cat > travel > life */
+  let kind = 'life';
+  if (scenes.some((s) => s.kind === 'move')) kind = 'move';
+  else if (scenes.some((s) => s.kind === 'cat')) kind = 'cat';
+  else if (scenes.some((s) => s.kind === 'travel')) kind = 'travel';
+
+  const mainScene = scenes.find((s) => s.kind === kind) || scenes[0];
+  let cats = [];
+
+  if (kind === 'move') cats = genMove(conds);
+  else if (kind === 'cat') cats = genCat(conds);
+  else if (kind === 'travel') {
+    const light = scenes.some((s) => s.light) && !scenes.some((s) => s.kind === 'travel' && !s.light);
+    cats = light ? genTravelLight(conds) : genTravel(conds);
+  }
+  else cats = genLife(mainScene, conds);
+
+  /* 合并同类目去重 */
+  const merged = [];
+  const seenText = {};
+  cats.forEach((g) => {
+    let target = merged.find((x) => x.name === g.name);
+    if (!target) { target = { name: g.name, items: [] }; merged.push(target); }
+    g.items.forEach((it) => {
+      const key = g.name + '/' + it.text;
+      if (seenText[key]) return;
+      seenText[key] = 1;
+      target.items.push(it);
+    });
+  });
+
+  /* 其他场景的附加项目（如猫咪外出、寄养） */
+  scenes.forEach((s) => {
+    if (s === mainScene) return;
+    if (s.kind === 'life' && s.items) {
+      s.items.forEach((g) => {
+        let target = merged.find((x) => x.name === g[0]);
+        if (!target) { target = { name: g[0], items: [] }; merged.push(target); }
+        g[1].forEach((t) => {
+          if (!target.items.some((x) => x.text === t)) target.items.push({ text: t });
+        });
+      });
+    }
+    if (s.extra) {
+      s.extra.forEach((g) => {
+        let target = merged.find((x) => x.name === g[0]);
+        if (!target) { target = { name: g[0], items: [] }; merged.push(target); }
+        g[1].forEach((t) => {
+          if (!target.items.some((x) => x.text === t)) target.items.push({ text: t });
+        });
+      });
+    }
+  });
+
+  return { cats: merged.filter((g) => g.items.length), kind: kind, scene: mainScene };
+}
+
+/* ---------------- 默认标题 ---------------- */
+function defaultTitle(sceneIds, conds) {
+  const now = new Date();
+  const names = sceneIds.map((id) => (SCENE_MAP[id] ? SCENE_MAP[id].name : '')).filter(Boolean);
+  const main = names[0] || '清单';
+  const ym = now.getFullYear() + '年' + (now.getMonth() + 1) + '月';
+  if (main === '搬家') return ym + '搬家';
+  if (main === '准备养猫' || main === '接猫回家') return ym + '养猫准备';
+  return ym + main;
+}
+
+/* ---------------- 系统模板 ---------------- */
+const SYSTEM_TEMPLATES = [
+  { id: 'sys-travel3', name: '3天旅行', kind: 'travel', desc: '出行', scenes: ['travel'], conds: { days: '3', transport: 'plane', stay: 'hotel', season: 'autumn', photo: false, activity: 'none' } },
+  { id: 'sys-moving', name: '搬家', kind: 'move', desc: '生活 · 按房间', scenes: ['moving'], conds: { furniture: 'yes', appliance: 'yes', mover: 'company' } },
+  { id: 'sys-cat', name: '准备养猫', kind: 'cat', desc: '宠物 · 分阶段', scenes: ['catready'], conds: { catAge: 'kitten', catCount: 'one', firstTime: 'yes', pickup: true } },
+  { id: 'sys-shopping', name: '日常采购', kind: 'life', desc: '生活', scenes: ['shopping'], conds: {} },
+  { id: 'sys-concert', name: '演唱会', kind: 'travel', desc: '出行', scenes: ['concert'], conds: { days: '1-2', transport: 'train', stay: 'friend', photo: false, activity: 'concert' } }
+];
+
+/* ---------------- 默认物品库 ---------------- */
+const DEFAULT_ITEMS = ['充电器', '耳机', '相机', '充电宝', '猫砂铲', '运输箱', '护照', '雨伞', '转换插头', '洗漱包', '指甲剪', '常备药'];
+
+window.Data = {
+  CONDS: CONDS, SCENES: SCENES, SCENE_MAP: SCENE_MAP,
+  SYSTEM_TEMPLATES: SYSTEM_TEMPLATES, DEFAULT_ITEMS: DEFAULT_ITEMS,
+  generate: generate, defaultTitle: defaultTitle,
+  GROUPS: ['出行', '生活', '宠物']
+};
+})();
+
+</script>
+<script>
+/* ============================================================
+   清单生成器 · 页面渲染与业务逻辑
+   ============================================================ */
+(function () {
+'use strict';
+
+const A = window.App, D = window.Data;
+const { $, $$, esc, uid, svg, dotSvg, DB, Nav, Sheet, actionSheet, promptSheet, toast, Bus } = A;
+
+const STATUS_FLOW = {
+  travel: ['todo', 'done', 'skip'],
+  life: ['todo', 'done', 'skip'],
+  cat: ['todo', 'done', 'skip'],
+  move: ['todo', 'packed', 'moved', 'confirmed']
+};
+const MOVE_LABEL = { todo: '未整理', packed: '已装箱', moved: '已搬运', confirmed: '已确认' };
+
+/* ============================================================
+   数据操作
+   ============================================================ */
+function save() { DB.save(); }
+
+function getList(id) { return DB.data.lists.find((l) => l.id === id); }
+function getTpl(id) { return DB.data.templates.find((t) => t.id === id); }
+/* 跨所有清单按 id 查找清单项（左/右按钮都只改这一条的状态） */
+function findItem(id) {
+  let found = null;
+  DB.data.lists.forEach((l) => l.cats.forEach((g) => g.items.forEach((it) => { if (it.id === id) found = it; })));
+  return found;
+}
+
+function stats(list) {
+  let total = 0, done = 0, skip = 0, todo = 0, packed = 0, moved = 0, confirmed = 0;
+  list.cats.forEach((g) => g.items.forEach((it) => {
+    total++;
+    if (list.kind === 'move') {
+      if (it.status === 'packed') packed++;
+      else if (it.status === 'moved') moved++;
+      else if (it.status === 'confirmed') confirmed++;
+      else todo++;
+    } else {
+      if (it.status === 'done') done++;
+      else if (it.status === 'skip') skip++;
+      else todo++;
+    }
+  }));
+  if (list.kind === 'move') {
+    const completed = moved + confirmed;
+    return { total: total, done: completed, skip: 0, todo: todo, packed: packed, pct: total ? Math.round(completed / total * 100) : 0, label: '已搬运' };
+  }
+  const base = total - skip;
+  return { total: total, done: done, skip: skip, todo: base - done, packed: 0, pct: base ? Math.round(done / base * 100) : 0, label: '已完成', base: base };
+}
+
+function hasItem(name) {
+  const n = String(name || '');
+  return DB.data.items.some((it) => n.indexOf(it.name) >= 0 || it.name.indexOf(n) >= 0);
+}
+
+function createList(sceneIds, conds, title) {
+  const res = D.generate(sceneIds, conds);
+  const list = {
+    id: uid(),
+    kind: res.kind,
+    title: title || D.defaultTitle(sceneIds, conds),
+    scenes: sceneIds.slice(),
+    conds: JSON.parse(JSON.stringify(conds)),
+    createdAt: Date.now(),
+    filter: 'all',
+    cats: res.cats.map((g) => ({
+      name: g.name,
+      items: g.items.map((it) => ({
+        id: uid(), text: it.text, qty: it.qty || 0,
+        sub: it.sub || '', cycle: it.cycle || '',
+        status: 'todo', box: '', skipAt: 0
+      }))
+    }))
+  };
+  DB.data.lists.unshift(list);
+  save();
+  return list;
+}
+
+function pushRecent(sceneIds) {
+  sceneIds.forEach((id) => {
+    const i = DB.data.recent.indexOf(id);
+    if (i >= 0) DB.data.recent.splice(i, 1);
+    DB.data.recent.unshift(id);
+  });
+  DB.data.recent = DB.data.recent.slice(0, 8);
+}
+
+/* ============================================================
+   通用片段
+   ============================================================ */
+function navBar(opts) {
+  const canBack = opts.back;
+  return '<div class="navbar">' +
+    '<div class="nav-side">' +
+    (canBack ? '<button class="nav-btn" data-tap="back" aria-label="返回">' + svg('back', 'chev') + '</button>' : '') +
+    '</div>' +
+    '<div class="nav-title">' + esc(opts.title) + '</div>' +
+    '<div class="nav-side right">' +
+    (opts.right || '') +
+    '</div>' +
+    '</div>';
+}
+
+function progressCard(list) {
+  const s = stats(list);
+  const note = list.kind === 'move'
+    ? '完成度 ' + s.pct + '% · ' + s.packed + ' 项已装箱 · ' + s.todo + ' 项未整理'
+    : '完成度 ' + s.pct + '% · ' + s.skip + ' 项不需要 · ' + s.todo + ' 项待完成';
+  return '<div class="progress-card">' +
+    '<div class="progress-top">' +
+    '<span class="progress-status">' + (s.done >= s.total && s.total ? '已全部完成' : '进行中') + '</span>' +
+    '<span class="progress-count">' + s.label + ' ' + s.done + ' / ' + (list.kind === 'move' ? s.total : s.base) + '</span>' +
+    '</div>' +
+    '<div class="progress-track"><div class="progress-fill" style="width:' + s.pct + '%"></div></div>' +
+    '<div class="progress-note">' + note + '</div>' +
+    '</div>';
+}
+
+/* ============================================================
+   01 首页
+   ============================================================ */
+function homePage() {
+  return {
+    render() {
+      const now = new Date();
+      const wk = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][now.getDay()];
+      const dateStr = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + wk;
+      const running = DB.data.lists.filter((l) => stats(l).done < (l.kind === 'move' ? stats(l).total : stats(l).base));
+
+      const cards = running.length
+        ? running.slice(0, 6).map((l) => {
+          const s = stats(l);
+          const sub = l.kind === 'move' ? '按房间 · 含箱号' : (l.kind === 'cat' ? '分阶段 · 周期事项' : (l.cats.length + ' 个分类'));
+          return '<button class="mini-card" data-tap="open-list" data-arg="' + l.id + '">' +
+            '<div class="mini-head"><span class="mini-name">' + esc(l.title) + '</span>' +
+            '<span class="mini-num">' + s.done + ' / ' + (l.kind === 'move' ? s.total : s.base) + '</span></div>' +
+            '<div class="progress-track"><div class="progress-fill" style="width:' + s.pct + '%"></div></div>' +
+            '<div class="mini-sub">' + esc(sub) + ' · 完成度 ' + s.pct + '%</div>' +
+            '</button>';
+        }).join('')
+        : '<div class="card pad"><div class="empty">' + svg('plus', 'ico') +
+          '<div class="t1x">还没有进行中的清单</div><div class="t2x">点下方「新建」，选个场景就能自动生成清单</div></div></div>';
+
+      const recent = DB.data.recent.filter((id) => D.SCENE_MAP[id]);
+      const recentHtml = recent.length
+        ? '<div class="chips-scroll">' + recent.map((id) =>
+          '<button class="chip-tag" data-tap="quick-scene" data-arg="' + id + '">' + esc(D.SCENE_MAP[id].name) + '</button>'
+        ).join('') + '</div>'
+        : '<div class="meta-line">还没有使用记录，新建一份清单后会出现在这里</div>';
+
+      const quick = [
+        { id: 'travel', name: '旅行', icon: 'plane' },
+        { id: 'moving', name: '搬家', icon: 'sofa' },
+        { id: 'catready', name: '养猫', icon: 'cat' },
+        { id: 'party', name: '聚会', icon: 'party' }
+      ].map((q) =>
+        '<button class="quick-item" data-tap="quick-start" data-arg="' + q.id + '">' +
+        svg(q.icon, 'quick-ico') + '<span class="quick-name">' + q.name + '</span></button>'
+      ).join('');
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body">' +
+        '<div class="page-head"><h1>我的清单</h1>' +
+        '<button class="round-btn grey" data-tap="search" aria-label="搜索">' + svg('search', '') + '</button></div>' +
+        '<div class="meta-line">' + dateStr + '</div>' +
+        '<div class="section-row"><span class="section-title">进行中</span>' +
+        '<button class="more" data-tap="history">全部清单</button></div>' +
+        cards +
+        '<div class="section-title">最近使用</div>' + recentHtml +
+        '<div class="section-title">快速新建</div>' +
+        '<div class="quick-grid">' + quick + '</div>' +
+        '</div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* ============================================================
+   02 新建 · 选择场景
+   ============================================================ */
+const draft = { scenes: [], conds: {} };
+
+function condsForScenes(ids) {
+  const set = [];
+  ids.forEach((id) => {
+    const s = D.SCENE_MAP[id];
+    if (!s || !s.conds) return;
+    s.conds.forEach((c) => { if (set.indexOf(c) < 0) set.push(c); });
+  });
+  return set;
+}
+
+function createPage() {
+  return {
+    render() {
+      draft.conds = {};
+      const n = draft.scenes.length;
+      const groups = D.GROUPS.map((g) => {
+        const items = D.SCENES.filter((s) => s.group === g);
+        return '<div class="section-title">' + g + '</div>' +
+          '<div class="scene-grid">' + items.map((s) =>
+            '<button class="scene-item' + (draft.scenes.indexOf(s.id) >= 0 ? ' on' : '') + '" data-tap="toggle-scene" data-arg="' + s.id + '">' + esc(s.name) + '</button>'
+          ).join('') + '</div>';
+      }).join('');
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body">' +
+        navBar({ title: '新建清单', back: false }) +
+        '<div class="meta-line">第 1 步 / 共 2 步</div>' +
+        '<div class="page-head"><h1>这次要准备什么？</h1></div>' +
+        '<div class="meta-line">可以同时选多个场景，重复的项目会自动合并</div>' +
+        groups +
+        '</div>' +
+        '<div class="cta-host"><button class="cta' + (n ? '' : ' ghost') + '" data-tap="to-cond"' + (n ? '' : ' disabled') + '>' +
+        (n ? '下一步 · 已选 ' + n + ' 个场景' : '先选一个场景') + '</button></div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* ---------------- 03 新建 · 补充条件 ---------------- */
+function condPage() {
+  return {
+    render() {
+      const keys = condsForScenes(draft.scenes);
+      const blocks = keys.map((k) => {
+        const c = D.CONDS[k];
+        if (!c) return '';
+        if (c.type === 'switch') {
+          const on = !!draft.conds[k];
+          return '<div class="switch-row">' +
+            '<div><div class="sw-label">' + esc(c.title) + '</div>' +
+            (c.sub ? '<div class="sw-sub">' + esc(c.sub) + '</div>' : '') + '</div>' +
+            '<button class="switch' + (on ? ' on' : '') + '" data-tap="toggle-switch" data-arg="' + k + '" role="switch" aria-checked="' + on + '"><span class="knob"></span></button>' +
+            '</div>';
+        }
+        return '<div class="card pad-sm"><div class="cond-block">' +
+          '<div class="cond-title">' + esc(c.title) + '</div>' +
+          '<div class="cond-grid' + (c.cols === 2 ? ' c2' : '') + '">' +
+          c.options.map((o) =>
+            '<button class="cond-opt' + (draft.conds[k] === o.k ? ' on' : '') + '" data-tap="pick-cond" data-arg="' + k + '|' + o.k + '">' + esc(o.label) + '</button>'
+          ).join('') + '</div></div></div>';
+      }).join('');
+
+      const est = D.generate(draft.scenes, draft.conds);
+      const count = est.cats.reduce((a, g) => a + g.items.length, 0);
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body has-cta">' +
+        navBar({ title: '补充条件', back: true }) +
+        '<div class="meta-line">第 2 步 / 共 2 步</div>' +
+        '<div class="page-head"><h1>再补充几个条件</h1></div>' +
+        '<div class="meta-line">只显示与所选场景相关的条件</div>' +
+        (blocks || '<div class="card pad"><div class="meta-line">这些场景没有额外条件，直接生成即可</div></div>') +
+        '</div>' +
+        '<div class="cta-host"><button class="cta" data-tap="do-generate">生成清单 · 约 ' + count + ' 项</button></div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* ============================================================
+   清单行渲染辅助（三段式 / 排序 / FLIP 动画）
+   ============================================================ */
+/* 渲染排序：不需要(skip)沉到列表最下方，并按操作顺序(skipAt)排列；正常项保持原顺序 */
+function sortRows(arr) {
+  const normal = [], skip = [];
+  arr.forEach((it) => { (it.status === 'skip') ? skip.push(it) : normal.push(it); });
+  skip.sort((a, b) => (a.skipAt || 0) - (b.skipAt || 0));
+  return normal.concat(skip);
+}
+
+/* 递增的「不需要」操作序号，用于沉底时的稳定排序 */
+function nextSkipSeq() {
+  let m = 0;
+  DB.data.lists.forEach((l) => l.cats.forEach((g) => g.items.forEach((it) => { if (it.skipAt && it.skipAt > m) m = it.skipAt; })));
+  return m + 1;
+}
+
+/* 完成状态控件：纯描边圆 + 细线勾选，靠 .on 切换，CSS 控制轻量描边动画 */
+function checkSvg() {
+  return '<svg class="check-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+    '<circle class="ck-circle" cx="12" cy="12" r="10.5"/>' +
+    '<path class="ck-mark" d="M7 12.4 L10.4 15.8 L17 8.6"/></svg>';
+}
+
+/* 单条清单行：三段式 —— 左：完成按钮 / 中：内容 / 右：不需要 */
+function renderItemRow(it, l, isMove, owned) {
+  const qty = it.qty ? ' × ' + it.qty : '';
+  const sub = it.sub ? '<span class="row-meta">' + esc(it.sub) + '</span>' : '';
+  const cycle = it.cycle ? '<span class="tag-chip cycle">' + esc(it.cycle) + '</span>' : '';
+  const box = isMove && it.box ? '<span class="tag-chip" data-tap="set-box" data-arg="' + it.id + '">箱' + esc(it.box) + '</span>' : '';
+  const ownedTag = owned ? '<span class="tag-chip grey">已有</span>' : '';
+  const tags = ownedTag + cycle + sub + box;
+  const main = '<span class="row-main">' +
+    '<span class="row-label">' + esc(it.text) + '<span class="row-meta">' + qty + '</span></span>' +
+    (tags ? '<span class="row-tags">' + tags + '</span>' : '') +
+    '</span>';
+
+  /* 搬家清单：保留四态装箱流程，无「不需要」按钮 */
+  if (isMove) {
+    const cls = it.status === 'packed' ? ' packed' : (it.status === 'moved' ? ' moved' : (it.status === 'confirmed' ? ' confirmed' : ''));
+    return '<div class="row' + cls + '" data-iid="' + it.id + '" data-lp="item" data-lp-id="' + it.id + '">' +
+      '<button class="row-hit" data-tap="cycle-status" data-arg="' + it.id + '" aria-label="切换状态">' + dotSvg(it.status, l.kind) + '</button>' +
+      main + '</div>';
+  }
+
+  const isDone = it.status === 'done';
+  const isSkip = it.status === 'skip';
+  const cls = isSkip ? ' skip' : (isDone ? ' done' : '');
+  const left = '<button class="row-check' + (isDone ? ' on' : '') + '" data-tap="toggle-done" data-arg="' + it.id + '" aria-label="完成状态">' + checkSvg() + '</button>';
+  const right = '<button class="row-skip' + (isSkip ? ' is-skip' : '') + '" data-tap="toggle-skip" data-arg="' + it.id + '" aria-label="不需要">' + (isSkip ? '恢复' : '不需要') + '</button>';
+  return '<div class="row' + cls + '" data-iid="' + it.id + '" data-lp="item" data-lp-id="' + it.id + '">' + left + main + right + '</div>';
+}
+
+/* FLIP 重排：记录前后位置，用 transform 平滑移动，避免整页重绘跳动 */
+function captureRects(root) {
+  const m = new Map();
+  root.querySelectorAll('.rows').forEach((cards) => {
+    const cat = cards.getAttribute('data-cat') || '';
+    Array.from(cards.children).forEach((ch) => {
+      if (ch.classList.contains('add-row')) m.set('add:' + cat, ch.getBoundingClientRect());
+      else { const id = ch.getAttribute('data-iid'); if (id) m.set(id, ch.getBoundingClientRect()); }
+    });
+  });
+  return m;
+}
+function flip(pageEl, before, after, popId) {
+  const nodeFor = (key) => {
+    if (key.indexOf('add:') === 0) return pageEl.querySelector('.rows[data-cat="' + key.slice(4) + '"] .add-row');
+    return pageEl.querySelector('.row[data-iid="' + key + '"]');
+  };
+  after.forEach((b, key) => {
+    const a = before.get(key); if (!a) return;
+    const dy = a.top - b.top, dx = a.left - b.left;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const el = nodeFor(key); if (!el) return;
+    el.style.transition = 'none';
+    const sc = (key === popId) ? ' scale(.97)' : '';
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)' + sc;
+  });
+  void pageEl.offsetWidth;
+  after.forEach((b, key) => {
+    const a = before.get(key); if (!a) return;
+    const dy = a.top - b.top, dx = a.left - b.left;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const el = nodeFor(key); if (!el) return;
+    el.style.transition = 'transform .3s cubic-bezier(.32,.72,0,1)';
+    el.style.transform = '';
+  });
+}
+function flipReorder(pageEl, renderFn, popId) {
+  /* 先取消进行中的动画，避免连续点击叠加导致位置错乱 */
+  pageEl.querySelectorAll('.rows > *').forEach((el) => { el.style.transition = 'none'; el.style.transform = ''; });
+  const before = captureRects(pageEl);
+  const body = pageEl.querySelector('.screen-body');
+  const top = body ? body.scrollTop : 0;
+  pageEl.innerHTML = renderFn();
+  const nb = pageEl.querySelector('.screen-body');
+  if (nb) nb.scrollTop = top;
+  const after = captureRects(pageEl);
+  flip(pageEl, before, after, popId);
+}
+
+/* ============================================================
+   04/05/06 清单详情
+   ============================================================ */
+function listPage(listId) {
+  return {
+    listId: listId,
+    render() {
+      const l = getList(listId);
+      if (!l) return '<div class="safe-top"></div><div class="screen-body"><div class="empty"><div class="t1x">清单不存在</div></div></div>';
+      const isMove = l.kind === 'move';
+      const isCat = l.kind === 'cat';
+
+      /* 筛选 */
+      const filters = isMove
+        ? [['all', '全部'], ['todo', '未整理'], ['packed', '已装箱'], ['moved', '已搬运'], ['confirmed', '已确认']]
+        : [['all', '全部'], ['todo', '未完成'], ['done', '已完成'], ['skip', '不需要']];
+      const filterHtml = '<div class="filter-row">' + filters.map((f) =>
+        '<button class="chip-seg' + (l.filter === f[0] ? ' on' : '') + '" data-tap="set-filter" data-arg="' + f[0] + '">' + f[1] + '</button>'
+      ).join('') + '</div>';
+
+      /* 养猫阶段切换 */
+      let stageHtml = '';
+      if (isCat) {
+        stageHtml = '<div class="filter-row">' + l.cats.map((g, i) =>
+          '<button class="chip-seg' + ((l.stage || 0) === i ? ' on' : '') + '" data-tap="set-stage" data-arg="' + i + '">' + esc(g.name) + '</button>'
+        ).join('') + '</div>';
+      }
+
+      /* 箱号条 */
+      let boxHtml = '';
+      if (isMove) {
+        const boxes = {};
+        l.cats.forEach((g) => g.items.forEach((it) => { if (it.box) boxes[it.box] = (boxes[it.box] || 0) + 1; }));
+        const keys = Object.keys(boxes).sort();
+        boxHtml = '<div class="card pad-sm"><div class="section-row" style="margin-bottom:10px">' +
+          '<span class="section-title">箱号</span>' +
+          '<button class="more" data-tap="manage-box">管理</button></div>' +
+          (keys.length
+            ? '<div class="chips-scroll">' + keys.map((k) =>
+              '<button class="chip-tag" data-tap="pick-box-filter" data-arg="' + esc(k) + '">箱' + esc(k) + ' · ' + boxes[k] + ' 件</button>'
+            ).join('') + '</div>'
+            : '<div class="meta-line">还没有设置箱号。长按项目可设置所属箱号。</div>') +
+          '</div>';
+      }
+
+      /* 项目列表 */
+      const showCats = isCat ? [l.cats[l.stage || 0]] : l.cats;
+      const totalItems = (showCats || []).reduce((a, g) => a + g.items.length, 0);
+      let shownCount = 0;
+      let body = '';
+      (showCats || []).forEach((g) => {
+        let items = g.items.filter((it) => {
+          if (l.filter === 'all') return true;
+          return it.status === l.filter;
+        });
+        /* 全部视图：不需要的项按操作顺序沉到列表最下方 */
+        if (l.filter === 'all') items = sortRows(items);
+        shownCount += items.length;
+        const rows = items.map((it) => renderItemRow(it, l, isMove, hasItem(it.text))).join('');
+
+        const addBtn = '<button class="add-row" data-tap="add-item" data-arg="' + esc(g.name) + '">' +
+          svg('plus', 'plus') + '<span>添加项目</span></button>';
+
+        body += '<div class="section-title">' + esc(g.name) + ' · ' + g.items.length + ' 项</div>' +
+          '<div class="card"><div class="rows" data-cat="' + esc(g.name) + '">' + (rows || '') + addBtn + '</div></div>';
+      });
+
+      if (l.filter !== 'all' && totalItems > 0 && shownCount === 0) {
+        body = '<div class="card pad"><div class="empty">' + svg('archive', 'ico') +
+          '<div class="t1x">这个状态下没有项目</div><div class="t2x">换个筛选条件看看</div></div></div>';
+      } else if (!body) {
+        body = '<div class="card pad"><div class="empty">' + svg('archive', 'ico') +
+          '<div class="t1x">这里没有项目</div><div class="t2x">换个筛选条件看看</div></div></div>';
+      }
+
+      const meta = (l.scenes || []).map((id) => D.SCENE_MAP[id] ? D.SCENE_MAP[id].name : '').filter(Boolean).join(' + ');
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body">' +
+        navBar({
+          title: l.title, back: true,
+          right: '<button class="nav-btn icon" data-tap="list-menu" aria-label="更多">' + svg('more', '') + '</button>'
+        }) +
+        '<div class="meta-line">' + (meta ? '来自 ' + esc(meta) + ' · ' : '') + '创建于 ' + fmtDate(l.createdAt) + '</div>' +
+        progressCard(l) +
+        (isMove ? boxHtml : '') +
+        stageHtml +
+        filterHtml +
+        body +
+        '</div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+
+/* 重绘页面并保留滚动位置 */
+function repaint(el, owner) {
+  const b = el.querySelector('.screen-body');
+  const top = b ? b.scrollTop : 0;
+  el.innerHTML = owner.render();
+  const nb = el.querySelector('.screen-body');
+  if (nb) nb.scrollTop = top;
+}
+function reenter(el, owner) { repaint(el, owner); }
+
+/* ============================================================
+   07 模板
+   ============================================================ */
+function templatesPage() {
+  return {
+    render() {
+      const mine = DB.data.templates;
+      const mineHtml = mine.length
+        ? mine.map((t) => {
+          const n = t.cats.reduce((a, g) => a + g.items.length, 0);
+          return '<button class="nav-row" data-tap="open-tpl" data-arg="' + t.id + '">' +
+            '<span class="txt"><span class="n1">' + esc(t.name) + '</span>' +
+            '<span class="n2">' + n + ' 项 · ' + esc(t.desc || '自定义') + '</span></span>' +
+            '<span class="chev">›</span></button>';
+        }).join('')
+        : '<div class="meta-line" style="padding:14px">还没有自己的模板。完成一份清单后，可以在清单菜单里「保存为我的模板」。</div>';
+
+      const sys = D.SYSTEM_TEMPLATES.map((t) => {
+        const n = D.generate(t.scenes, t.conds).cats.reduce((a, g) => a + g.items.length, 0);
+        return '<button class="nav-row" data-tap="use-sys-tpl" data-arg="' + t.id + '">' +
+          '<span class="txt"><span class="n1">' + esc(t.name) + '</span>' +
+          '<span class="n2">' + n + ' 项 · ' + esc(t.desc) + '</span></span>' +
+          '<span class="act">使用</span></button>';
+      }).join('');
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body">' +
+        '<div class="page-head"><h1>模板</h1>' +
+        '<button class="round-btn" data-tap="new-tpl" aria-label="新建模板">' + svg('plus', '') + '</button></div>' +
+        '<div class="section-title">我的模板</div>' +
+        '<div class="card">' + mineHtml + '</div>' +
+        '<div class="section-title">系统模板 · 不可修改</div>' +
+        '<div class="card">' + sys + '</div>' +
+        '<div class="tip-bar">' + svg('info', 'ico') +
+        '<span>使用模板会生成一份全新清单，不会改动模板本身</span></div>' +
+        '</div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* 模板详情 */
+function tplPage(tplId) {
+  return {
+    render() {
+      const t = getTpl(tplId);
+      if (!t) return '<div class="safe-top"></div><div class="screen-body"><div class="empty"><div class="t1x">模板不存在</div></div></div>';
+      const body = t.cats.map((g) =>
+        '<div class="section-title">' + esc(g.name) + ' · ' + g.items.length + ' 项</div>' +
+        '<div class="card"><div class="rows">' + g.items.map((it) =>
+          '<div class="row"><span class="row-label">' + esc(it.text) + (it.qty ? '<span class="row-meta"> × ' + it.qty + '</span>' : '') + '</span></div>'
+        ).join('') + '</div></div>'
+      ).join('');
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body">' +
+        navBar({ title: t.name, back: true, right: '<button class="nav-btn icon" data-tap="tpl-menu" aria-label="更多">' + svg('more', '') + '</button>' }) +
+        '<div class="meta-line">我的模板 · 创建于 ' + fmtDate(t.createdAt) + '</div>' +
+        body +
+        '</div>' +
+        '<div class="cta-host"><button class="cta" data-tap="use-tpl" data-arg="' + t.id + '">使用此模板</button></div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* ============================================================
+   08 我的
+   ============================================================ */
+function minePage() {
+  return {
+    render() {
+      const running = DB.data.lists.filter((l) => stats(l).done < (l.kind === 'move' ? stats(l).total : stats(l).base)).length;
+      const done = DB.data.lists.filter((l) => stats(l).done >= (l.kind === 'move' ? stats(l).total : stats(l).base) && stats(l).total).length;
+
+      const rows = [
+        { tap: 'open-items', icon: 'bag', n1: '我的物品库', n2: DB.data.items.length + ' 件 · 清单中自动标记「已有」' },
+        { tap: 'tab', arg: 'template', icon: 'layers', n1: '我的模板', n2: DB.data.templates.length + ' 个 · 系统更新不会覆盖' },
+        { tap: 'history', icon: 'archive', n1: '历史清单', n2: DB.data.lists.length + ' 份 · 可保存为我的模板' }
+      ].map((r) =>
+        '<button class="nav-row" data-tap="' + r.tap + '"' + (r.arg ? ' data-arg="' + r.arg + '"' : '') + '>' +
+        '<span class="txt"><span class="n1">' + r.n1 + '</span><span class="n2">' + r.n2 + '</span></span>' +
+        '<span class="chev">›</span></button>'
+      ).join('');
+
+      const items = DB.data.items.slice(0, 12).map((it) =>
+        '<span class="chip-tag" data-tap="noop">' + esc(it.name) + '</span>'
+      ).join('') || '<span class="chip-tag">还没有物品</span>';
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body">' +
+        '<div class="page-head"><h1>我的</h1></div>' +
+        '<div class="card pad"><div class="stat-row">' +
+        '<div class="stat"><span class="n">' + running + '</span><span class="l">进行中</span></div>' +
+        '<div class="stat"><span class="n">' + done + '</span><span class="l">已完成</span></div>' +
+        '<div class="stat"><span class="n">' + DB.data.items.length + '</span><span class="l">我的物品</span></div>' +
+        '</div></div>' +
+        '<div class="section-title">我的数据</div>' +
+        '<div class="card">' + rows + '</div>' +
+        '<div class="section-title">常用物品</div>' +
+        '<div class="chip-wall">' + items + '</div>' +
+        '<div class="tip-bar">' + svg('info', 'ico') +
+        '<span>数据仅保存在本机，无需登录 · 系统更新不会覆盖</span></div>' +
+        '</div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* 物品库 */
+function itemsPage() {
+  return {
+    render() {
+      const rows = DB.data.items.length
+        ? DB.data.items.map((it) =>
+          '<div class="row"><span class="row-label">' + esc(it.name) + '</span>' +
+          '<button class="row-hit" data-tap="del-item-lib" data-arg="' + it.id + '" aria-label="删除">' + svg('trash', '') + '</button></div>'
+        ).join('')
+        : '<div class="empty">' + svg('bag', 'ico') + '<div class="t1x">物品库还是空的</div>' +
+          '<div class="t2x">把常带的东西加进来，生成清单时会自动标上「已有」</div></div>';
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body no-tab">' +
+        navBar({ title: '我的物品库', back: true }) +
+        '<div class="meta-line">清单生成时，命中物品库的项目会显示「已有」徽标</div>' +
+        '<div class="card"><div class="rows">' + rows +
+        '<button class="add-row" data-tap="add-item-lib">' + svg('plus', 'plus') + '<span>添加物品</span></button>' +
+        '</div></div>' +
+        '</div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* 历史清单 */
+function historyPage() {
+  return {
+    render() {
+      const lists = DB.data.lists.slice().sort((a, b) => b.createdAt - a.createdAt);
+      const rows = lists.length
+        ? lists.map((l) => {
+          const s = stats(l);
+          const done = s.done >= (l.kind === 'move' ? s.total : s.base) && s.total;
+          return '<button class="nav-row" data-tap="open-list" data-arg="' + l.id + '" data-lp="list" data-lp-id="' + l.id + '">' +
+            '<span class="txt"><span class="n1">' + esc(l.title) + '</span>' +
+            '<span class="n2">' + fmtDate(l.createdAt) + ' · ' + s.done + '/' + (l.kind === 'move' ? s.total : s.base) + ' · ' + (done ? '已完成' : '进行中') + '</span></span>' +
+            '<span class="chev">›</span></button>';
+        }).join('')
+        : '<div class="empty">' + svg('archive', 'ico') + '<div class="t1x">还没有清单</div></div>';
+
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body no-tab">' +
+        navBar({ title: '历史清单', back: true }) +
+        '<div class="meta-line">长按某份清单可以保存为模板或删除</div>' +
+        '<div class="card">' + rows + '</div>' +
+        '</div>';
+    },
+    onReenter(el) { repaint(el, this); }
+  };
+}
+
+/* 搜索 */
+function searchPage() {
+  return {
+    render() {
+      return '<div class="safe-top"></div>' +
+        '<div class="screen-body no-tab">' +
+        '<div class="navbar"><div class="nav-side">' +
+        '<button class="nav-btn" data-tap="back">' + svg('back', 'chev') + '</button></div>' +
+        '<div class="nav-title">搜索</div><div class="nav-side right"></div></div>' +
+        '<div class="field" id="sf"><input id="si" type="search" placeholder="搜索清单或模板" autocomplete="off" enterkeyhint="search">' +
+        '<button class="clear" data-tap="field-clear" data-arg="si">×</button></div>' +
+        '<div id="sres"></div>' +
+        '</div>';
+    },
+    onEnter(el) {
+      const input = $('#si', el);
+      if (!input) return;
+      input.addEventListener('input', () => {
+        $('#sf').classList.toggle('has-value', !!input.value);
+        renderSearch(input.value.trim());
+      });
+      setTimeout(() => input.focus(), 300);
+    }
+  };
+}
+
+function renderSearch(kw) {
+  const host = $('#sres');
+  if (!host) return;
+  if (!kw) { host.innerHTML = '<div class="meta-line">输入关键字搜索清单标题、项目名称或模板</div>'; return; }
+  const k = kw.toLowerCase();
+  const lists = DB.data.lists.filter((l) =>
+    l.title.toLowerCase().indexOf(k) >= 0 ||
+    l.cats.some((g) => g.items.some((it) => it.text.toLowerCase().indexOf(k) >= 0))
+  );
+  const tpls = DB.data.templates.concat(D.SYSTEM_TEMPLATES).filter((t) => t.name.toLowerCase().indexOf(k) >= 0);
+
+  let html = '';
+  if (lists.length) {
+    html += '<div class="section-title">清单</div><div class="card">' + lists.map((l) =>
+      '<button class="nav-row" data-tap="open-list" data-arg="' + l.id + '">' +
+      '<span class="txt"><span class="n1">' + esc(l.title) + '</span><span class="n2">' + fmtDate(l.createdAt) + '</span></span>' +
+      '<span class="chev">›</span></button>'
+    ).join('') + '</div>';
+  }
+  if (tpls.length) {
+    html += '<div class="section-title">模板</div><div class="card">' + tpls.map((t) =>
+      '<button class="nav-row" data-tap="' + (t.scenes ? 'use-sys-tpl' : 'open-tpl') + '" data-arg="' + t.id + '">' +
+      '<span class="txt"><span class="n1">' + esc(t.name) + '</span><span class="n2">' + esc(t.desc || '我的模板') + '</span></span>' +
+      '<span class="act">' + (t.scenes ? '使用' : '打开') + '</span></button>'
+    ).join('') + '</div>';
+  }
+  if (!html) html = '<div class="card pad"><div class="empty"><div class="t1x">没有找到「' + esc(kw) + '」</div></div></div>';
+  host.innerHTML = html;
+}
+
+/* ============================================================
+   长按排序
+   ============================================================ */
+function startItemSort(row, ev) {
+  const list = row.parentNode;
+  const rect = row.getBoundingClientRect();
+  const startY = ev.clientY;
+  let mode = 'idle';
+
+  const ph = document.createElement('div');
+  ph.style.height = rect.height + 'px';
+  ph.style.background = 'rgba(46,158,126,.08)';
+  ph.style.borderRadius = '12px';
+  list.insertBefore(ph, row);
+
+  row.style.position = 'fixed';
+  row.style.left = rect.left + 'px';
+  row.style.top = rect.top + 'px';
+  row.style.width = rect.width + 'px';
+  row.style.zIndex = '300';
+  row.style.pointerEvents = 'none';
+  row.style.boxShadow = '0 10px 24px -6px rgba(20,22,26,.3)';
+  row.classList.add('sorting');
+  if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+
+  function move(e) {
+    const dy = e.clientY - startY;
+    if (mode === 'idle') {
+      if (Math.abs(dy) < 6) return;
+      mode = 'drag';
+      document.body.setAttribute('data-dragging', '1');
+    }
+    e.preventDefault();
+    row.style.top = (rect.top + dy) + 'px';
+    const rows = Array.from(list.querySelectorAll('.row[data-iid]'));
+    let target = null;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (r === row) continue;
+      const rr = r.getBoundingClientRect();
+      if (e.clientY < rr.top + rr.height / 2) { target = r; break; }
+    }
+    if (target) list.insertBefore(ph, target);
+    else list.appendChild(ph);
+  }
+
+  function up() {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    document.removeEventListener('pointercancel', up);
+    document.body.removeAttribute('data-dragging');
+    list.insertBefore(row, ph);
+    if (ph.parentNode) ph.parentNode.removeChild(ph);
+    row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = '';
+    row.style.zIndex = ''; row.style.boxShadow = ''; row.style.pointerEvents = '';
+    row.classList.remove('sorting');
+    if (mode !== 'drag') { return; }
+
+    /* 提交顺序 */
+    const ids = Array.from(list.querySelectorAll('.row[data-iid]')).map((r) => r.getAttribute('data-iid'));
+    const catName = list.getAttribute('data-cat');
+    const stack = Nav.stacks[Nav.active];
+    const page = stack[stack.length - 1];
+    const l = getList(page.listId);
+    if (!l) return;
+    const g = l.cats.find((x) => x.name === catName);
+    if (!g) return;
+    const map = {};
+    g.items.forEach((it) => { map[it.id] = it; });
+    const next = ids.map((id) => map[id]).filter(Boolean);
+    g.items.forEach((it) => { if (next.indexOf(it) < 0) next.push(it); });
+    g.items = next;
+    save();
+    toast('顺序已更新');
+  }
+
+  document.addEventListener('pointermove', move, { passive: false });
+  document.addEventListener('pointerup', up);
+  document.addEventListener('pointercancel', up);
+}
+
+/* 长按后未拖动 → 弹出操作菜单 */
+function itemMenu(iid) {
+  const stack = Nav.stacks[Nav.active];
+  const page = stack[stack.length - 1];
+  const l = getList(page.listId);
+  if (!l) return;
+  let item = null, cat = null;
+  l.cats.forEach((g) => g.items.forEach((it) => { if (it.id === iid) { item = it; cat = g; } }));
+  if (!item) return;
+
+  const acts = [
+    { key: 'edit', label: '编辑名称' },
+    { key: 'move', label: '修改分类' }
+  ];
+  if (l.kind === 'move') acts.push({ key: 'box', label: item.box ? '修改箱号（当前 箱' + item.box + '）' : '设置箱号' });
+  acts.push({ key: 'own', label: hasItem(item.text) ? '从物品库移除' : '加入我的物品库' });
+  acts.push({ key: 'del', label: '删除项目', style: 'danger' });
+
+  actionSheet(item.text, acts);
+  Sheet._acts = acts;
+  Sheet._ctx = { iid: iid, listId: l.id, catName: cat.name };
+}
+
+/* ============================================================
+   事件分发
+   ============================================================ */
+Bus.on('tap', (e) => {
+  const act = e.action, arg = e.arg;
+  const stack = Nav.stacks[Nav.active];
+  const page = stack[stack.length - 1];
+
+  switch (act) {
+    case 'noop': return;
+
+    /* --- Tab --- */
+    case 'tab':
+      if (arg === 'create') {
+        if (Nav.active === 'create') { draft.scenes = []; Nav.reset('create', createPage); }
+        else Nav.switchTab('create');
+      } else {
+        Nav.switchTab(arg);
+      }
+      return;
+
+    case 'back': Nav.pop(); return;
+    case 'sheet-close': Sheet.close(); return;
+
+    /* --- 首页 --- */
+    case 'open-list': {
+      Nav.push(Nav.active, listPage(arg));
+      DB.data.activeListId = arg; save();
+      return;
+    }
+    case 'history': Nav.push(Nav.active, historyPage()); return;
+    case 'search': Nav.push(Nav.active, searchPage()); return;
+
+    case 'quick-start':
+    case 'quick-scene': {
+      draft.scenes = [arg];
+      if (Nav.active !== 'create') Nav.switchTab('create');
+      Nav.reset('create', createPage);
+      Nav.push('create', buildCondPage());
+      return;
+    }
+
+    /* --- 新建 --- */
+    case 'toggle-scene': {
+      const i = draft.scenes.indexOf(arg);
+      if (i >= 0) draft.scenes.splice(i, 1); else draft.scenes.push(arg);
+      page.el.innerHTML = page.render();
+      return;
+    }
+    case 'to-cond': {
+      Nav.push('create', buildCondPage());
+      return;
+    }
+    case 'pick-cond': {
+      const p = arg.split('|');
+      draft.conds[p[0]] = p[1];
+      page.el.innerHTML = page.render();
+      return;
+    }
+    case 'toggle-switch': {
+      draft.conds[arg] = !draft.conds[arg];
+      page.el.innerHTML = page.render();
+      return;
+    }
+    case 'do-generate': {
+      const list = createList(draft.scenes, draft.conds);
+      pushRecent(draft.scenes);
+      save();
+      Nav.popToRoot('create');
+      Nav.switchTab('home');
+      Nav.refreshTab('home');
+      Nav.push('home', listPage(list.id));
+      toast('已生成 ' + stats(list).total + ' 项清单');
+      return;
+    }
+
+    /* --- 清单详情 --- */
+    case 'cycle-status': {
+      const l = getList(page.listId);
+      if (!l) return;
+      const flow = STATUS_FLOW[l.kind] || STATUS_FLOW.travel;
+      l.cats.forEach((g) => g.items.forEach((it) => {
+        if (it.id === arg) {
+          const i = flow.indexOf(it.status || 'todo');
+          it.status = flow[(i + 1) % flow.length];
+        }
+      }));
+      save();
+      const b = page.el.querySelector('.screen-body');
+      const top = b ? b.scrollTop : 0;
+      page.el.innerHTML = page.render();
+      const nb = page.el.querySelector('.screen-body');
+      if (nb) nb.scrollTop = top;
+      return;
+    }
+    case 'set-filter': {
+      const l = getList(page.listId);
+      if (!l) return;
+      l.filter = arg; save();
+      page.el.innerHTML = page.render();
+      return;
+    }
+    case 'set-stage': {
+      const l = getList(page.listId);
+      if (!l) return;
+      l.stage = parseInt(arg, 10); save();
+      page.el.innerHTML = page.render();
+      const b = page.el.querySelector('.screen-body');
+      if (b) b.scrollTop = 0;
+      return;
+    }
+
+    /* 左侧完成按钮：仅切换 未完成↔已完成，与右侧「不需要」完全独立 */
+    case 'toggle-done': {
+      const l = getList(page.listId);
+      if (!l) return;
+      const it = findItem(arg);
+      if (!it) return;
+      if (it.status === 'skip') return;                 // 已经是「不需要」时不响应左侧
+      it.status = (it.status === 'done') ? 'todo' : 'done';
+      save();
+      if (l.filter === 'all') {
+        /* 位置不变，直接原地切 class，轻量不重绘、不跳动 */
+        const row = page.el.querySelector('.row[data-iid="' + arg + '"]');
+        const btn = row ? row.querySelector('.row-check') : null;
+        if (btn) btn.classList.toggle('on', it.status === 'done');
+        if (row) row.classList.toggle('done', it.status === 'done');
+        /* 进度卡同步刷新（只换文本，不重绘整页、不跳动） */
+        const pc = page.el.querySelector('.progress-card');
+        if (pc) pc.outerHTML = progressCard(l);
+      } else {
+        page.el.innerHTML = page.render();
+      }
+      return;
+    }
+
+    /* 右侧「不需要」：独立状态；标记后平滑沉到列表最下方，再次点击恢复为正常 */
+    case 'toggle-skip': {
+      const l = getList(page.listId);
+      if (!l) return;
+      const it = findItem(arg);
+      if (!it) return;
+      if (it.status === 'skip') { it.status = 'todo'; it.skipAt = 0; }
+      else { it.status = 'skip'; it.skipAt = nextSkipSeq(); }
+      save();
+      if (l.filter === 'all') {
+        flipReorder(page.el, () => listPage(l.id).render(), arg);
+      } else {
+        page.el.innerHTML = page.render();
+      }
+      return;
+    }
+    case 'add-item': {
+      promptSheet('添加到「' + arg + '」', {
+        placeholder: '项目名称',
+        ok: '添加',
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          const l = getList(page.listId);
+          if (!l) return;
+          let g = l.cats.find((x) => x.name === arg);
+          if (!g) { g = { name: arg, items: [] }; l.cats.push(g); }
+          g.items.push({ id: uid(), text: v, qty: 0, sub: '', cycle: '', status: 'todo', box: '', skipAt: 0 });
+          save();
+          Sheet.close();
+          page.el.innerHTML = page.render();
+          toast('已添加');
+        }
+      });
+      return;
+    }
+    case 'set-box': {
+      const l = getList(page.listId);
+      if (!l) return;
+      let item = null;
+      l.cats.forEach((g) => g.items.forEach((it) => { if (it.id === arg) item = it; }));
+      if (!item) return;
+      openBoxSheet(l, item);
+      return;
+    }
+    case 'manage-box': {
+      const l = getList(page.listId);
+      if (!l) return;
+      const boxes = {};
+      l.cats.forEach((g) => g.items.forEach((it) => { if (it.box) boxes[it.box] = (boxes[it.box] || 0) + 1; }));
+      const keys = Object.keys(boxes).sort();
+      const html = (keys.length
+        ? '<div class="card"><div class="rows">' + keys.map((k) =>
+          '<div class="row"><span class="row-label">箱' + esc(k) + '</span>' +
+          '<span class="row-meta">' + boxes[k] + ' 件</span></div>').join('') + '</div></div>'
+        : '<div class="meta-line">还没有设置箱号</div>') +
+        '<div class="tip-bar">' + svg('info', 'ico') + '<span>长按清单项目即可设置或清除箱号</span></div>';
+      Sheet.open(html, { title: '箱号管理' });
+      return;
+    }
+    case 'pick-box-filter': {
+      toast('已筛选箱' + arg + '，可在项目上长按修改');
+      return;
+    }
+    case 'list-menu': {
+      const l = getList(page.listId);
+      if (!l) return;
+      const acts = [
+        { key: 'rename', label: '重命名清单' },
+        { key: 'save-tpl', label: '保存为我的模板' },
+        { key: 'reset', label: '重置为全部未完成' },
+        { key: 'del', label: '删除清单', style: 'danger' }
+      ];
+      Sheet._acts = acts;
+      Sheet._ctx = { listId: l.id };
+      actionSheet(l.title, acts);
+      return;
+    }
+
+    /* --- 模板 --- */
+    case 'use-sys-tpl': {
+      const t = D.SYSTEM_TEMPLATES.find((x) => x.id === arg);
+      if (!t) return;
+      const list = createList(t.scenes, JSON.parse(JSON.stringify(t.conds)), t.name + ' · ' + (new Date().getMonth() + 1) + '月');
+      pushRecent(t.scenes);
+      save();
+      Nav.switchTab('home');
+      Nav.refreshTab('home');
+      Nav.push('home', listPage(list.id));
+      toast('已用模板生成清单');
+      return;
+    }
+    case 'open-tpl': Nav.push(Nav.active, tplPage(arg)); return;
+    case 'use-tpl': {
+      const t = getTpl(arg);
+      if (!t) return;
+      const list = {
+        id: uid(), kind: t.kind, title: t.name + ' · ' + (new Date().getMonth() + 1) + '月',
+        scenes: [], conds: {}, createdAt: Date.now(), filter: 'all', stage: 0,
+        cats: JSON.parse(JSON.stringify(t.cats)).map((g) => ({
+          name: g.name,
+          items: (g.items || []).map((it) => ({
+            id: uid(), text: it.text, qty: it.qty || 0,
+            sub: it.sub || '', cycle: it.cycle || '',
+            status: 'todo', box: '', skipAt: 0
+          }))
+        }))
+      };
+      DB.data.lists.unshift(list);
+      save();
+      Nav.switchTab('home');
+      Nav.refreshTab('home');
+      Nav.push('home', listPage(list.id));
+      toast('已用模板生成清单');
+      return;
+    }
+    case 'new-tpl': {
+      promptSheet('新建模板', {
+        placeholder: '模板名称，例如 我的周末出行',
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          const t = { id: uid(), name: v, kind: 'life', desc: '自定义', createdAt: Date.now(), cats: [{ name: '未分类', items: [] }] };
+          DB.data.templates.unshift(t); save();
+          Sheet.close();
+          Nav.push(Nav.active, tplPage(t.id));
+        }
+      });
+      return;
+    }
+    case 'tpl-menu': {
+      const stack2 = Nav.stacks[Nav.active];
+      const p2 = stack2[stack2.length - 1];
+      const tplId = (p2.el.querySelector('[data-tap="use-tpl"]') || {}).getAttribute ? p2.el.querySelector('[data-tap="use-tpl"]').getAttribute('data-arg') : null;
+      if (!tplId) return;
+      const acts = [
+        { key: 'add-tpl-item', label: '添加项目' },
+        { key: 'rename-tpl', label: '重命名模板' },
+        { key: 'del-tpl', label: '删除模板', style: 'danger' }
+      ];
+      Sheet._acts = acts;
+      Sheet._ctx = { tplId: tplId };
+      actionSheet('模板操作', acts);
+      return;
+    }
+
+    /* --- 物品库 --- */
+    case 'open-items': Nav.push(Nav.active, itemsPage()); return;
+    case 'add-item-lib': {
+      promptSheet('添加物品', {
+        placeholder: '物品名称',
+        hint: '加入后，清单里同名项目会显示「已有」',
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          if (DB.data.items.some((i) => i.name === v)) { toast('已经在物品库里了'); return; }
+          DB.data.items.unshift({ id: uid(), name: v }); save();
+          Sheet.close();
+          page.el.innerHTML = page.render();
+          toast('已加入物品库');
+        }
+      });
+      return;
+    }
+    case 'del-item-lib': {
+      DB.data.items = DB.data.items.filter((i) => i.id !== arg);
+      save();
+      page.el.innerHTML = page.render();
+      toast('已移出物品库');
+      return;
+    }
+
+    /* --- 表单 --- */
+    case 'field-clear': {
+      const el = document.getElementById(arg);
+      if (el) {
+        el.value = '';
+        const f = el.parentNode; f.classList.remove('has-value');
+        el.focus();
+        if (arg === 'si') renderSearch('');
+      }
+      return;
+    }
+    case 'prompt-ok': {
+      const cb = Sheet._promptCb; Sheet._promptCb = null;
+      const v = ($('#pi') ? $('#pi').value.trim() : '');
+      if (cb) cb(v);
+      return;
+    }
+
+    /* --- ActionSheet 选项 --- */
+    case 'act': {
+      const acts = Sheet._acts || [];
+      const ctx = Sheet._ctx || {};
+      Sheet.close();
+      const a = acts.find((x) => x.key === arg);
+      if (!a) return;
+      handleAction(arg, ctx);
+      return;
+    }
+  }
+});
+
+/* ActionSheet 后续动作 */
+function handleAction(key, ctx) {
+  const stack = Nav.stacks[Nav.active];
+  const page = stack[stack.length - 1];
+
+  /* 清单项目 */
+  if (['edit', 'move', 'box', 'own', 'del'].indexOf(key) >= 0 && ctx.iid) {
+    const l = getList(ctx.listId);
+    if (!l) return;
+    let item = null, cat = null;
+    l.cats.forEach((g) => g.items.forEach((it) => { if (it.id === ctx.iid) { item = it; cat = g; } }));
+    if (!item) return;
+
+    if (key === 'edit') {
+      promptSheet('编辑项目', {
+        value: item.text,
+        onOk(v) {
+          if (!v) { toast('名称不能为空'); return; }
+          item.text = v; save(); Sheet.close();
+          page.el.innerHTML = page.render();
+          toast('已更新');
+        }
+      });
+      return;
+    }
+    if (key === 'move') {
+      const html = '<div class="cat-grid">' + l.cats.map((g) =>
+        '<button class="cond-opt' + (g.name === cat.name ? ' on' : '') + '" data-tap="act" data-arg="cat:' + esc(g.name) + '">' + esc(g.name) + '</button>'
+      ).join('') + '</div>' +
+        '<div class="tip-bar">' + svg('info', 'ico') + '<span>选择要移动到的分类</span></div>';
+      Sheet._acts = l.cats.map((g) => ({ key: 'cat:' + g.name, label: g.name }));
+      Sheet._ctx = ctx;
+      Sheet.open(html, { title: '修改分类' });
+      return;
+    }
+    if (key === 'box') { openBoxSheet(l, item); return; }
+    if (key === 'own') {
+      if (hasItem(item.text)) {
+        DB.data.items = DB.data.items.filter((i) => !(item.text.indexOf(i.name) >= 0 || i.name.indexOf(item.text) >= 0));
+        toast('已移出物品库');
+      } else {
+        DB.data.items.unshift({ id: uid(), name: item.text });
+        toast('已加入物品库');
+      }
+      save();
+      page.el.innerHTML = page.render();
+      return;
+    }
+    if (key === 'del') {
+      cat.items = cat.items.filter((x) => x.id !== item.id);
+      save();
+      page.el.innerHTML = page.render();
+      toast('已删除');
+      return;
+    }
+    return;
+  }
+
+  /* 分类移动 */
+  if (key.indexOf('cat:') === 0) {
+    const target = key.slice(4);
+    const l = getList(ctx.listId);
+    if (!l) return;
+    let item = null, from = null;
+    l.cats.forEach((g) => g.items.forEach((it) => { if (it.id === ctx.iid) { item = it; from = g; } }));
+    if (!item || !from) return;
+    if (from.name === target) return;
+    from.items = from.items.filter((x) => x.id !== item.id);
+    let to = l.cats.find((g) => g.name === target);
+    if (!to) { to = { name: target, items: [] }; l.cats.push(to); }
+    to.items.push(item);
+    save();
+    page.el.innerHTML = page.render();
+    toast('已移动到「' + target + '」');
+    return;
+  }
+
+  /* 清单级 */
+  if (ctx.listId) {
+    const l = getList(ctx.listId);
+    if (!l) return;
+    if (key === 'rename') {
+      promptSheet('重命名清单', {
+        value: l.title,
+        onOk(v) {
+          if (!v) { toast('名称不能为空'); return; }
+          l.title = v; save(); Sheet.close();
+          page.el.innerHTML = page.render();
+          toast('已重命名');
+        }
+      });
+      return;
+    }
+    if (key === 'save-tpl') {
+      promptSheet('保存为我的模板', {
+        value: l.title,
+        hint: '保存后可在「模板」里反复使用，不会改动这份清单',
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          DB.data.templates.unshift({
+            id: uid(), name: v, kind: l.kind,
+            desc: l.kind === 'move' ? '含箱号' : (l.kind === 'cat' ? '分阶段' : '自定义'),
+            createdAt: Date.now(),
+            cats: JSON.parse(JSON.stringify(l.cats))
+          });
+          save(); Sheet.close();
+          toast('已保存为我的模板');
+        }
+      });
+      return;
+    }
+    if (key === 'reset') {
+      l.cats.forEach((g) => g.items.forEach((it) => { it.status = 'todo'; }));
+      save();
+      page.el.innerHTML = page.render();
+      toast('已重置');
+      return;
+    }
+    if (key === 'del') {
+      DB.data.lists = DB.data.lists.filter((x) => x.id !== l.id);
+      save();
+      Nav.pop();
+      Nav.refreshTab('home');
+      Nav.refreshTab('mine');
+      toast('清单已删除');
+      return;
+    }
+  }
+
+  /* 模板级 */
+  if (ctx.tplId) {
+    const t = getTpl(ctx.tplId);
+    if (!t) return;
+    if (key === 'add-tpl-item') {
+      promptSheet('添加项目', {
+        placeholder: '项目名称',
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          t.cats[0].items.push({ text: v, qty: 0, sub: '', cycle: '' });
+          save(); Sheet.close();
+          page.el.innerHTML = page.render();
+        }
+      });
+      return;
+    }
+    if (key === 'rename-tpl') {
+      promptSheet('重命名模板', {
+        value: t.name,
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          t.name = v; save(); Sheet.close();
+          page.el.innerHTML = page.render();
+        }
+      });
+      return;
+    }
+    if (key === 'del-tpl') {
+      DB.data.templates = DB.data.templates.filter((x) => x.id !== t.id);
+      save();
+      Nav.pop();
+      Nav.refreshTab('template');
+      toast('模板已删除');
+      return;
+    }
+  }
+
+  /* 历史清单长按 */
+  if (ctx.listLongPress) {
+    const l = getList(ctx.listLongPress);
+    if (!l) return;
+    if (key === 'save-tpl') {
+      promptSheet('保存为我的模板', {
+        value: l.title,
+        onOk(v) {
+          if (!v) { toast('请输入名称'); return; }
+          DB.data.templates.unshift({
+            id: uid(), name: v, kind: l.kind, desc: '自定义', createdAt: Date.now(),
+            cats: JSON.parse(JSON.stringify(l.cats))
+          });
+          save(); Sheet.close();
+          toast('已保存为我的模板');
+        }
+      });
+    }
+    if (key === 'del') {
+      DB.data.lists = DB.data.lists.filter((x) => x.id !== l.id);
+      save();
+      page.el.innerHTML = page.render();
+      Nav.refreshTab('home');
+      Nav.refreshTab('mine');
+      toast('清单已删除');
+    }
+  }
+}
+
+/* 箱号 Sheet */
+function openBoxSheet(list, item) {
+  const nums = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  const used = {};
+  list.cats.forEach((g) => g.items.forEach((it) => { if (it.box) used[it.box] = (used[it.box] || 0) + 1; }));
+  const html = '<div class="box-grid">' + nums.map((n) =>
+    '<button class="box-opt' + (item.box === n ? ' on' : '') + '" data-tap="act" data-arg="box:' + n + '">' + n + '</button>'
+  ).join('') + '</div>' +
+    (item.box ? '<button class="act-row danger" data-tap="act" data-arg="box:clear">清除箱号</button>' : '') +
+    '<div class="tip-bar">' + svg('info', 'ico') + '<span>把同一箱的物品设为同一个箱号，搬运时按箱清点</span></div>';
+  Sheet._acts = nums.map((n) => ({ key: 'box:' + n, label: n })).concat([{ key: 'box:clear', label: '清除' }]);
+  Sheet._ctx = { iid: item.id, listId: list.id };
+  Sheet.open(html, { title: '设置箱号' });
+}
+
+/* 箱号动作 */
+Bus.on('tap', (e) => {
+  if (e.action !== 'act') return;
+  const key = e.arg;
+  if (key.indexOf('box:') !== 0) return;
+  const ctx = Sheet._ctx || {};
+  Sheet.close();
+  const l = getList(ctx.listId);
+  if (!l) return;
+  let item = null;
+  l.cats.forEach((g) => g.items.forEach((it) => { if (it.id === ctx.iid) item = it; }));
+  if (!item) return;
+  const v = key.slice(4);
+  item.box = (v === 'clear') ? '' : v;
+  save();
+  const stack = Nav.stacks[Nav.active];
+  const page = stack[stack.length - 1];
+  if (page && page.el) page.el.innerHTML = page.render();
+  toast(v === 'clear' ? '已清除箱号' : '已设为箱' + v);
+});
+
+/* ============================================================
+   长按
+   ============================================================ */
+Bus.on('longpress', (e) => {
+  if (e.kind === 'item') {
+    const el = e.el;
+    const ev = window.__lastPointer || { clientY: 0 };
+    startItemSort(el, ev);
+    /* 松手时若未拖动 → 弹出菜单 */
+    const onUp = () => {
+      document.removeEventListener('pointerup', onUp);
+      setTimeout(() => {
+        if (!el.classList.contains('sorting')) itemMenu(e.id);
+      }, 30);
+    };
+    document.addEventListener('pointerup', onUp);
+    return;
+  }
+  if (e.kind === 'list') {
+    const acts = [
+      { key: 'save-tpl', label: '保存为我的模板' },
+      { key: 'del', label: '删除清单', style: 'danger' }
+    ];
+    Sheet._acts = acts;
+    Sheet._ctx = { listLongPress: e.id };
+    actionSheet('清单操作', acts);
+    return;
+  }
+});
+
+/* 记录最近一次 pointer 位置，供长按排序使用 */
+document.addEventListener('pointerdown', (e) => { window.__lastPointer = { clientX: e.clientX, clientY: e.clientY }; }, { passive: true });
+
+/* 按所选场景初始化条件默认值，返回条件选择页 */
+function buildCondPage() {
+  const keys = condsForScenes(draft.scenes);
+  const next = {};
+  keys.forEach((k) => {
+    const c = D.CONDS[k];
+    if (!c) return;
+    next[k] = (c.type === 'switch') ? !!c.def : (c.def || '');
+  });
+  draft.scenes.forEach((id) => {
+    const s = D.SCENE_MAP[id];
+    if (s && s.preset) Object.keys(s.preset).forEach((k) => { if (keys.indexOf(k) >= 0) next[k] = s.preset[k]; });
+  });
+  draft.conds = next;
+  return condPage();
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+function seedDemo() {
+  if (DB.data.lists.length) return;
+  /* 三份示例清单，对应设计稿首页 */
+  const mk = (scenes, conds, title, plan) => {
+    const l = createList(scenes, conds, title);
+    let i = 0;
+    l.cats.forEach((g) => g.items.forEach((it) => {
+      const idx = i++;
+      if (plan.mark === 'travel') {
+        if (idx < plan.done) it.status = 'done';
+        else if (idx >= plan.total - plan.skip) it.status = 'skip';
+      } else if (plan.mark === 'move') {
+        if (idx < plan.done) it.status = 'moved';
+        else if (idx < plan.done + plan.packed) it.status = 'packed';
+      } else {
+        if (idx < plan.done) it.status = 'done';
+      }
+    }));
+    return l;
+  };
+
+  const t = D.generate(['travel'], { days: '3', transport: 'plane', stay: 'hotel', season: 'autumn', photo: true, activity: 'none' });
+  const tt = t.cats.reduce((a, g) => a + g.items.length, 0);
+  mk(['travel'], { days: '3', transport: 'plane', stay: 'hotel', season: 'autumn', photo: true, activity: 'none' },
+    '2026年9月上海旅行', { mark: 'travel', done: Math.min(23, tt - 3), skip: 3, total: tt });
+
+  const m = D.generate(['moving'], { furniture: 'yes', appliance: 'yes', mover: 'company' });
+  const mt = m.cats.reduce((a, g) => a + g.items.length, 0);
+  mk(['moving'], { furniture: 'yes', appliance: 'yes', mover: 'company' },
+    '浦东 → 徐汇 搬家', { mark: 'move', done: Math.min(42, mt - 14), packed: 12, total: mt });
+
+  const c = D.generate(['catready'], { catAge: 'kitten', catCount: 'one', firstTime: 'yes', pickup: true });
+  const ct = c.cats.reduce((a, g) => a + g.items.length, 0);
+  mk(['catready'], { catAge: 'kitten', catCount: 'one', firstTime: 'yes', pickup: true },
+    '养猫准备', { mark: 'cat', done: Math.min(15, ct), total: ct });
+
+  DB.data.recent = ['concert', 'business', 'shopping', 'weekend'];
+  save();
+}
+
+function boot() {
+  DB.load();
+  if (!DB.data.items.length) {
+    DB.data.items = D.DEFAULT_ITEMS.map((n) => ({ id: uid(), name: n }));
+  }
+  seedDemo();
+
+  Nav.reset('home', homePage);
+  Nav.reset('create', createPage);
+  Nav.reset('template', templatesPage);
+  Nav.reset('mine', minePage);
+
+  const tab = DB.data.activeTab && ['home', 'create', 'template', 'mine'].indexOf(DB.data.activeTab) >= 0 ? DB.data.activeTab : 'home';
+  Nav.active = tab;
+  $$('.stack').forEach((s) => s.classList.toggle('active', s.getAttribute('data-tab') === tab));
+  Nav.renderTabBar();
+  Nav.syncEdge();
+
+  /* 恢复上次查看的清单 */
+  if (DB.data.activeListId && getList(DB.data.activeListId)) {
+    Nav.push(tab, listPage(DB.data.activeListId));
+  }
+
+  /* iOS 独立模式防止整页滚动 */
+  document.addEventListener('touchmove', (e) => {
+    if (!e.target.closest('.screen-body') && !e.target.closest('.sheet-body') && !e.target.closest('.chips-scroll')) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+
+})();
+
+</script>
+</body>
+</html>

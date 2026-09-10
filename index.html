@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="清单生成器">
+<meta name="theme-color" content="#F2F3F5">
+<meta name="color-scheme" content="light">
+<title>清单生成器</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <div class="stacks" id="stacks">
+    <div class="stack" data-tab="home"></div>
+    <div class="stack" data-tab="create"></div>
+    <div class="stack" data-tab="template"></div>
+    <div class="stack" data-tab="mine"></div>
+  </div>
+
+  <nav class="tabbar" id="tabbar"></nav>
+
+  <div class="edge-back" id="edgeBack" aria-hidden="true"></div>
+  <div class="sheet-mask" id="sheetMask"></div>
+  <div class="sheet-host" id="sheetHost"></div>
+  <div class="toast" id="toast"></div>
+</div>
+<script src="app.js"></script>
+<script src="data.js"></script>
+<script src="screens.js"></script>
+</body>
+</html>

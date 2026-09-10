@@ -1,0 +1,17 @@
+{
+  "name": "清单生成器",
+  "short_name": "清单",
+  "description": "出行、搬家、养猫、生活清单一键生成",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F3F5",
+  "theme_color": "#2E9E7E",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

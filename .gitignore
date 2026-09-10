@@ -1,0 +1,5 @@
+# 本地依赖（jsdom / playwright 等，通过软链接提供，不入库）
+node_modules/
+
+# 构建产物（与 docs/index.html 内容一致，避免重复）
+清单生成器.html
